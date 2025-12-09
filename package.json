@@ -1,8 +1,9 @@
 {
   "name": "mx-jpush-expo",
-  "version": "0.0.1",
+  "version": "1.0.2",
   "description": "expo 集成 jpush 一体化方案",
-  "main": "index.js",
+  "main": "app.plugin.js",
+  "types": "plugin/build/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/konodioda727/JPush-Expo"
@@ -10,20 +11,39 @@
   "keywords": [
     "jpush",
     "expo",
-    "config",
+    "config-plugin",
     "react-native",
-    "muxi-studio"
+    "muxi-studio",
+    "push-notification"
   ],
   "files": [
-    "index.js",
-    "app.plugin.js"
+    "app.plugin.js",
+    "plugin/build",
+    "README.md",
+    "LICENSE"
   ],
+  "scripts": {
+    "build": "tsc --project plugin/tsconfig.json",
+    "clean": "rm -rf plugin/build",
+    "test": "jest --config plugin/jest.config.js",
+    "prepare": "npm run build",
+    "lint": "eslint plugin/src --ext .ts"
+  },
   "author": {
     "name": "MuxiStudio",
     "url": "https://github.com/konodioda727"
   },
   "license": "MIT",
-  "dependencies": {
-    "@expo/config-plugins": "^3.0.3"
-  }
+  "peerDependencies": {
+    "expo": "*"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "expo": "^52.0.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
 }
