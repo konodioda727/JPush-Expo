@@ -3,7 +3,7 @@
     "target": "ES2020",
     "module": "commonjs",
     "lib": ["ES2020"],
-    "outDir": "build",
+    "outDir": "builds",
     "rootDir": "src",
     "declaration": true,
     "declarationMap": true,
@@ -16,5 +16,5 @@
     "resolveJsonModule": true
   },
   "include": ["./src"],
-  "exclude": ["**/__mocks__/*", "**/__tests__/*", "build"]
+  "exclude": ["**/__mocks__/*", "**/__tests__/*", "builds"]
 }
