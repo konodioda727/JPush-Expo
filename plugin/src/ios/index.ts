@@ -5,7 +5,6 @@
 
 import { ConfigPlugin } from 'expo/config-plugins';
 import { withIosInfoPlist } from './infoPlist';
-import { withIosAppDelegateInterface } from './appDelegateInterface';
 import { withIosAppDelegate } from './appDelegate';
 import { withIosBridgingHeader } from './bridgingHeader';
 import { withIosPodfile } from './podfile';
@@ -17,7 +16,6 @@ import { withIosPodfile } from './podfile';
  */
 export const withIOSConfig: ConfigPlugin = (config) => {
   config = withIosInfoPlist(config);
-  config = withIosAppDelegateInterface(config);
   config = withIosAppDelegate(config);
   config = withIosBridgingHeader(config);
   config = withIosPodfile(config);

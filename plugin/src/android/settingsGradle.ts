@@ -4,6 +4,20 @@
  */
 
 import { ConfigPlugin, withSettingsGradle } from 'expo/config-plugins';
+import { mergeContents } from '../utils/generateCode';
+import { Validator } from '../utils/codeValidator';
+
+/**
+ * 生成 JPush 模块配置
+ */
+const getJPushModules = (): string => {
+  return `
+include ':jpush-react-native'
+project(':jpush-react-native').projectDir = new File(rootProject.projectDir, '../node_modules/jpush-react-native/android')
+
+include ':jcore-react-native'
+project(':jcore-react-native').projectDir = new File(rootProject.projectDir, '../node_modules/jcore-react-native/android')`;
+};
 
 /**
  * 配置 Android settings.gradle
@@ -11,28 +25,40 @@ import { ConfigPlugin, withSettingsGradle } from 'expo/config-plugins';
  */
 export const withAndroidSettingsGradle: ConfigPlugin = (config) =>
   withSettingsGradle(config, (config) => {
-    let contents = config.modResults.contents;
+    const validator = new Validator(config.modResults.contents);
 
-    // 添加 jpush-react-native
-    if (!contents.includes(`include ':jpush-react-native'`)) {
-      console.log(
-        '\n[MX_JPush_Expo] 配置 settings.gradle include jpush-react-native ...'
-      );
-      contents += `
-include ':jpush-react-native'
-project(':jpush-react-native').projectDir = new File(rootProject.projectDir, '../node_modules/jpush-react-native/android')`;
-    }
+    // 在最后一个 include 语句之后添加 JPush 模块
+    validator.register("include ':jpush-react-native", (src) => {
+      console.log('\n[MX_JPush_Expo] 配置 settings.gradle include jpush modules ...');
+      
+      // 查找最后一个 include 语句
+      const includeMatches = Array.from(src.matchAll(/include\s+['"]:[\w-]+['"]/g));
+      
+      if (includeMatches.length === 0) {
+        // 如果没有找到 include，在文件末尾添加
+        return mergeContents({
+          src,
+          newSrc: getJPushModules(),
+          tag: 'jpush-modules',
+          anchor: /$/,
+          offset: 0,
+          comment: '//',
+        });
+      }
+      
+      // 使用最后一个 include 作为锚点
+      const lastInclude = includeMatches[includeMatches.length - 1][0];
+      
+      return mergeContents({
+        src,
+        newSrc: getJPushModules(),
+        tag: 'jpush-modules',
+        anchor: new RegExp(lastInclude.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),  // 转义特殊字符
+        offset: 1,  // 在最后一个 include 的下一行插入
+        comment: '//',
+      });
+    });
 
-    // 添加 jcore-react-native
-    if (!contents.includes(`include ':jcore-react-native'`)) {
-      console.log(
-        '\n[MX_JPush_Expo] 配置 settings.gradle include jcore-react-native ...'
-      );
-      contents += `
-include ':jcore-react-native'
-project(':jcore-react-native').projectDir = new File(rootProject.projectDir, '../node_modules/jcore-react-native/android')`;
-    }
-
-    config.modResults.contents = contents;
+    config.modResults.contents = validator.invoke();
     return config;
   });
