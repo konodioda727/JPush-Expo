@@ -27,34 +27,16 @@ export const withAndroidSettingsGradle: ConfigPlugin = (config) =>
   withSettingsGradle(config, (config) => {
     const validator = new Validator(config.modResults.contents);
 
-    // 在最后一个 include 语句之后添加 JPush 模块
+    // 在 includeBuild(expoAutolinking.reactNativeGradlePlugin) 上方添加 JPush 模块
     validator.register("include ':jpush-react-native", (src) => {
       console.log('\n[MX_JPush_Expo] 配置 settings.gradle include jpush modules ...');
-      
-      // 查找最后一个 include 语句
-      const includeMatches = Array.from(src.matchAll(/include\s+['"]:[\w-]+['"]/g));
-      
-      if (includeMatches.length === 0) {
-        // 如果没有找到 include，在文件末尾添加
-        return mergeContents({
-          src,
-          newSrc: getJPushModules(),
-          tag: 'jpush-modules',
-          anchor: /$/,
-          offset: 0,
-          comment: '//',
-        });
-      }
-      
-      // 使用最后一个 include 作为锚点
-      const lastInclude = includeMatches[includeMatches.length - 1][0];
       
       return mergeContents({
         src,
         newSrc: getJPushModules(),
         tag: 'jpush-modules',
-        anchor: new RegExp(lastInclude.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),  // 转义特殊字符
-        offset: 1,  // 在最后一个 include 的下一行插入
+        anchor: /includeBuild\(expoAutolinking\.reactNativeGradlePlugin\)/,
+        offset: -1,  // 在锚点上方插入
         comment: '//',
       });
     });
