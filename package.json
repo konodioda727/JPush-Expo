@@ -1,7 +1,7 @@
 {
   "name": "mx-jpush-expo",
-  "version": "1.0.5",
-  "description": "expo 集成 jpush 一体化方案",
+  "version": "1.0.6",
+  "description": "Expo 集成极光推送（JPush）一体化解决方案，支持 iOS/Android 厂商通道",
   "main": "app.plugin.js",
   "types": "plugin/build/index.d.ts",
   "repository": {
@@ -10,11 +10,26 @@
   },
   "keywords": [
     "jpush",
+    "极光推送",
+    "jiguang",
     "expo",
+    "expo-plugin",
     "config-plugin",
     "react-native",
-    "muxi-studio",
-    "push-notification"
+    "push-notification",
+    "推送通知",
+    "ios-push",
+    "android-push",
+    "apns",
+    "fcm",
+    "xiaomi-push",
+    "oppo-push",
+    "vivo-push",
+    "meizu-push",
+    "huawei-push",
+    "vendor-channel",
+    "厂商通道",
+    "muxi-studio"
   ],
   "files": [
     "app.plugin.js",
