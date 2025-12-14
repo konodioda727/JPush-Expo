@@ -32,7 +32,9 @@ const getVendorClasspaths = (): string => {
  * 生成华为 Maven 仓库配置
  */
 const getHuaweiMavenRepo = (): string => {
-  return `maven { url 'https://developer.huawei.com/repo/' }`;
+  return `repositories {
+        maven { url 'https://developer.huawei.com/repo/' }
+    }`;
 };
 
 /**
@@ -65,14 +67,32 @@ export const withAndroidProjectBuildGradle: ConfigPlugin = (config) =>
       validator.register('developer.huawei.com', (src) => {
         console.log('\n[MX_JPush_Expo] 配置 project build.gradle 华为 Maven 仓库 ...');
         
-        return mergeContents({
-          src,
-          newSrc: getHuaweiMavenRepo(),
-          tag: 'jpush-huawei-maven',
-          anchor: /allprojects\s*\{[\s\S]*?repositories\s*\{/,
-          offset: 1,
-          comment: '//',
-        });
+        // 检查是否已存在 repositories 块
+        const hasRepositoriesBlock = /repositories\s*\{/.test(src);
+        
+        if (hasRepositoriesBlock) {
+          // 如果已存在 repositories 块，在其中添加华为 Maven 仓库
+          return mergeContents({
+            src,
+            newSrc: `maven { url 'https://developer.huawei.com/repo/' }`,
+            tag: 'jpush-huawei-maven',
+            anchor: /repositories\s*\{/,
+            offset: 1,
+            comment: '//',
+          });
+        } else {
+          // 如果不存在 repositories 块，添加完整的 repositories 块
+          return mergeContents({
+            src,
+            newSrc: `repositories {
+        maven { url 'https://developer.huawei.com/repo/' }
+    }`,
+            tag: 'jpush-huawei-maven',
+            anchor: /allprojects\s*\{/,
+            offset: 1,
+            comment: '//',
+          });
+        }
       });
     }
 
