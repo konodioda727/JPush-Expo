@@ -1,6 +1,6 @@
 {
   "name": "mx-jpush-expo",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Expo 集成极光推送（JPush）一体化解决方案，支持 iOS/Android 厂商通道",
   "main": "app.plugin.js",
   "types": "plugin/build/index.d.ts",
