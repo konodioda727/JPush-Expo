@@ -212,7 +212,7 @@ export const withAndroidAppBuildGradle: ConfigPlugin = (config) =>
         src,
         newSrc: getManifestPlaceholders(),
         tag: 'jpush-manifest-placeholders',
-        anchor: /abiFilters.*\n.*\}/,  // 在 NDK 配置后插入
+        anchor: /ndk\s*\{/,  // 在 NDK 配置后插入
         offset: 1,
         comment: '//',
       });

@@ -69,7 +69,7 @@ export const withAndroidProjectBuildGradle: ConfigPlugin = (config) =>
           src,
           newSrc: getHuaweiMavenRepo(),
           tag: 'jpush-huawei-maven',
-          anchor: /allprojects\s*\{[\s\S]*?repositories\s*\{/,
+          anchor: /repositories\s*\{/,
           offset: 1,
           comment: '//',
         });

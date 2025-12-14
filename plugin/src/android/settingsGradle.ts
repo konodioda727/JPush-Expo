@@ -35,7 +35,7 @@ export const withAndroidSettingsGradle: ConfigPlugin = (config) =>
         src,
         newSrc: getJPushModules(),
         tag: 'jpush-modules',
-        anchor: /includeBuild\(expoAutolinking\.reactNativeGradlePlugin\)/,
+        anchor: /include\s+['"]?:app['"]?/,
         offset: -1,  // 在锚点上方插入
         comment: '//',
       });
