@@ -14,8 +14,7 @@ import { Validator } from '../utils/codeValidator';
 const getNdkConfig = (): string => {
   return `ndk {
                 //选择要添加的对应 cpu 类型的 .so 库。
-                abiFilters 'armeabi', 'armeabi-v7a', 'arm64-v8a'
-                // 还可以添加 'x86', 'x86_64', 'mips', 'mips64'
+                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
             }`;
 };
 
