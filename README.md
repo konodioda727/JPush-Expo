@@ -140,15 +140,42 @@ pnpm add jpush-react-native@3.1.9 jcore-react-native@^2.3.0
 - 厂商通道配置是可选的，只需配置你实际使用的厂商
 - 如果不配置某个厂商，对应的 SDK 依赖和配置不会被添加
 - 所有厂商通道的 AppKey/AppId 需要在对应厂商的推送平台申请
-- 厂商通道插件版本：**5.7.0**（与 JPush SDK 版本保持一致）
+- 厂商通道插件版本：**5.9.0**（与 JPush SDK 版本保持一致）
+- **SDK 依赖已自动配置**，无需手动下载 aar 文件
 
 **厂商通道额外配置**：
-- **华为推送**：需要在华为开发者联盟申请，并下载 `agconnect-services.json` 放到 `android/app` 目录
-- **FCM 推送**：需要在 Firebase 控制台申请，并下载 `google-services.json` 放到 `android/app` 目录
-- **魅族推送**：需要手动下载 `push-internal-5.0.3.aar` 并放到 `android/app/libs` 目录
-- **OPPO 推送**：需要手动下载 `com.heytap.msp_3.5.3.aar` 并放到 `android/app/libs` 目录
-- **荣耀推送**：需要手动下载 `HiPushSDK-8.0.12.307.aar` 并放到 `android/app/libs` 目录
-- **蔚来推送**：需要手动下载 `niopush-sdk-v1.0.aar` 并放到 `android/app/libs` 目录
+
+| 厂商 | 配置文件 | 应用签名 | 说明 |
+|------|---------|---------|------|
+| **华为** | `agconnect-services.json` | ✅ **必需** | 需在华为开发者联盟申请，配置 SHA256 指纹 |
+| **FCM** | `google-services.json` | ❌ | 需在 Firebase 控制台申请 |
+| **荣耀** | - | ✅ **必需** | 需在荣耀开发者平台配置 SHA256 指纹 |
+| **蔚来** | - | ✅ **必需** | 需在蔚来开发者平台配置应用签名 |
+| **小米** | - | ❌ | 仅需 AppId 和 AppKey |
+| **OPPO** | - | ❌ | 仅需 AppKey、AppId 和 AppSecret |
+| **VIVO** | - | ❌ | 仅需 AppKey 和 AppId |
+| **魅族** | - | ❌ | 仅需 AppKey 和 AppId |
+#### 厂商通道详细配置
+
+各厂商通道的详细配置步骤（包括参数获取、签名配置等），请参考极光官方文档：
+
+📖 **[极光推送 - Android 厂商通道参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param)**
+
+**快速说明**：
+
+| 厂商 | 配置文件 | 签名要求 | 说明 |
+|------|---------|---------|------|
+| **华为** | `agconnect-services.json` | ✅ 必需 | [华为参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param#%E5%8D%8E%E4%B8%BA%E5%8F%82%E6%95%B0%E8%8E%B7%E5%8F%96) |
+| **FCM** | `google-services.json` | ❌ | [FCM 参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param#%E5%88%9B%E5%BB%BA%E5%BA%94%E7%94%A8-4) |
+| **荣耀** | - | ✅ 必需 | [荣耀参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param#%E8%8D%A3%E8%80%80%E5%8F%82%E6%95%B0%E8%8E%B7%E5%8F%96) |
+| **蔚来** | - | ✅ 必需 |  |
+| **小米** | - | ❌ | [小米参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param#%E5%B0%8F%E7%B1%B3%E5%8F%82%E6%95%B0%E8%8E%B7%E5%8F%96) |
+| **OPPO** | - | ❌ | [OPPO 参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param#oppo-%E5%8F%82%E6%95%B0%E8%8E%B7%E5%8F%96) |
+| **VIVO** | - | ❌ | [VIVO 参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param#vivo-%E5%8F%82%E6%95%B0%E8%8E%B7%E5%8F%96) |
+| **魅族** | - | ❌ | [魅族参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param#%E9%AD%85%E6%97%8F%E5%8F%82%E6%95%B0%E8%8E%B7%E5%8F%96) |
+
+**配置文件位置**：
+- 将 `agconnect-services.json`（华为）或 `google-services.json`（FCM）放到 `android/app/` 目录
 
 ## 3.`prebuild`
 ```bash
@@ -164,7 +191,22 @@ expo prebuild
 
 ## 更新日志
 
-### v1.0.2 (2025-09-27)
+### v1.1.0 (2025-12-17)
+
+**🎉 完整支持 Android 厂商通道**
+
+- ✨ 新增完整的 Android 厂商通道支持（华为、FCM、小米、OPPO、VIVO、魅族、荣耀、蔚来）
+- ✨ 自动配置厂商通道 SDK 依赖（JPush 5.9.0）
+- ✨ 自动配置 `manifestPlaceholders`（包括 `JPUSH_PKGNAME`）
+- ✨ 自动配置 NDK `abiFilters`
+- ✨ 自动配置华为和 FCM 的 `apply plugin` 语句
+- ✨ 自动配置 project/build.gradle（Maven 仓库和 classpath）
+- ✨ 新增 `packageName` 必填配置项
+- � 完善厂商文通道配置文档，添加极光官方文档链接
+- 📝 添加应用签名配置说明（华为、荣耀、蔚来必需）
+- 🔧 优化代码结构，移除手动下载 aar 的要求
+
+### v1.0.2 (2024-09-27)
 > 📖 **参考文章**：[Expo SDK 53+ 集成极光推送 iOS Swift](https://juejin.cn/post/7554288083597885467)
 
 - ✨ 支持 Expo SDK 53+ 和 React Native 0.79.5+
@@ -191,6 +233,45 @@ expo prebuild
 ### Android 配置
 1. 确保在 AndroidManifest.xml 中已声明必要的权限
 2. 检查 Gradle 配置是否正确
+3. **签名配置（重要）**：华为、荣耀等厂商通道需要应用签名才能正常工作
+   - 将签名文件（如 `release.keystore`）放到 `android/app/` 目录
+   - 在 `android/app/build.gradle` 中配置签名：
+   ```gradle
+   android {
+       ...
+       signingConfigs {
+           release {
+               storeFile file("release.keystore")
+               storePassword "your_store_password"
+               keyAlias "your_key_alias"
+               keyPassword "your_key_password"
+           }
+       }
+       buildTypes {
+           release {
+               signingConfig signingConfigs.release
+               ...
+           }
+       }
+   }
+   ```
+   - **安全提示**：不要将密码直接写在代码中，建议使用环境变量或 `gradle.properties`：
+   ```gradle
+   // 在 gradle.properties 中配置（不要提交到 Git）
+   RELEASE_STORE_PASSWORD=your_store_password
+   RELEASE_KEY_PASSWORD=your_key_password
+   RELEASE_KEY_ALIAS=your_key_alias
+   
+   // 在 build.gradle 中读取
+   signingConfigs {
+       release {
+           storeFile file("release.keystore")
+           storePassword project.hasProperty('RELEASE_STORE_PASSWORD') ? RELEASE_STORE_PASSWORD : ''
+           keyAlias project.hasProperty('RELEASE_KEY_ALIAS') ? RELEASE_KEY_ALIAS : ''
+           keyPassword project.hasProperty('RELEASE_KEY_PASSWORD') ? RELEASE_KEY_PASSWORD : ''
+       }
+   }
+   ```
 
 ### 常见问题
 - **iOS 推送证书问题**：检查证书是否过期，环境是否匹配（开发/生产）

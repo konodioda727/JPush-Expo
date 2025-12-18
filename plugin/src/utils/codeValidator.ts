@@ -11,10 +11,6 @@ export class Validator {
     }
     invoke() {
         Object.entries(this.processors).forEach(([codeSeg, processor]) => {
-            const isCodeSegExist = this.injectedCode.includes(codeSeg)
-            if (isCodeSegExist) {
-                return
-            }
             const { didClear, didMerge, contents } = processor(this.injectedCode)
             if (didClear) {
                 console.log(`[CodeValidator] ${codeSeg} cleared`)

@@ -29,15 +29,6 @@ const getVendorClasspaths = (): string => {
 };
 
 /**
- * 生成华为 Maven 仓库配置
- */
-const getHuaweiMavenRepo = (): string => {
-  return `repositories {
-        maven { url 'https://developer.huawei.com/repo/' }
-    }`;
-};
-
-/**
  * 配置 Android project/build.gradle
  */
 export const withAndroidProjectBuildGradle: ConfigPlugin = (config) =>
@@ -45,11 +36,27 @@ export const withAndroidProjectBuildGradle: ConfigPlugin = (config) =>
     const vendorChannels = getVendorChannels();
     const validator = new Validator(config.modResults.contents);
 
-    // 1. 添加厂商通道 classpath 依赖
+    // 1. 添加华为 Maven 仓库到 buildscript repositories（如果启用了华为推送）
+    if (vendorChannels?.huawei) {
+      validator.register('jpush-huawei-maven-buildscript', (src) => {
+        console.log('\n[MX_JPush_Expo] 配置 buildscript repositories 华为 Maven 仓库 ...');
+        
+        return mergeContents({
+          src,
+          newSrc: `maven { url 'https://developer.huawei.com/repo/' }`,
+          tag: 'jpush-huawei-maven-buildscript',
+          anchor: /buildscript\s*\{/,
+          offset: 2,  // 跳过 buildscript { 和 repositories {
+          comment: '//',
+        });
+      });
+    }
+
+    // 2. 添加厂商通道 classpath 依赖到 buildscript dependencies
     const classpaths = getVendorClasspaths();
     if (classpaths) {
       validator.register('classpath', (src) => {
-        console.log('\n[MX_JPush_Expo] 配置 project build.gradle classpath ...');
+        console.log('\n[MX_JPush_Expo] 配置 buildscript dependencies classpath ...');
         
         return mergeContents({
           src,
@@ -62,32 +69,37 @@ export const withAndroidProjectBuildGradle: ConfigPlugin = (config) =>
       });
     }
 
-    // 2. 添加华为 Maven 仓库（如果启用了华为推送）
+    // 3. 添加华为 Maven 仓库到 allprojects repositories（如果启用了华为推送）
     if (vendorChannels?.huawei) {
-      validator.register('developer.huawei.com', (src) => {
-        console.log('\n[MX_JPush_Expo] 配置 project build.gradle 华为 Maven 仓库 ...');
+      validator.register('jpush-huawei-maven-allprojects', (src) => {
+        console.log('\n[MX_JPush_Expo] 配置 allprojects repositories 华为 Maven 仓库 ...');
         
-        // 检查是否已存在 repositories 块
-        const hasRepositoriesBlock = /repositories\s*\{/.test(src);
+        // 检查 allprojects 中是否已存在 repositories 块
+        const hasAllprojects = /allprojects\s*\{/.test(src);
+        if (!hasAllprojects) {
+          return { contents: src, didMerge: false, didClear: false };
+        }
         
-        if (hasRepositoriesBlock) {
-          // 如果已存在 repositories 块，在其中添加华为 Maven 仓库
+        const hasRepositories = /allprojects\s*\{[^}]*repositories\s*\{/.test(src);
+        
+        if (hasRepositories) {
+          // 在 allprojects 的 repositories 块中添加
           return mergeContents({
             src,
             newSrc: `maven { url 'https://developer.huawei.com/repo/' }`,
-            tag: 'jpush-huawei-maven',
-            anchor: /repositories\s*\{/,
-            offset: 1,
+            tag: 'jpush-huawei-maven-allprojects',
+            anchor: /allprojects\s*\{/,
+            offset: 2,  // 跳过 allprojects { 和 repositories {
             comment: '//',
           });
         } else {
-          // 如果不存在 repositories 块，添加完整的 repositories 块
+          // 创建新的 repositories 块
           return mergeContents({
             src,
             newSrc: `repositories {
         maven { url 'https://developer.huawei.com/repo/' }
     }`,
-            tag: 'jpush-huawei-maven',
+            tag: 'jpush-huawei-maven-allprojects',
             anchor: /allprojects\s*\{/,
             offset: 1,
             comment: '//',
