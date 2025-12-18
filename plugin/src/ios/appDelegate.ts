@@ -20,18 +20,14 @@ export const withIosAppDelegate: ConfigPlugin = (config) =>
     validator.register('import UserNotifications', (src) => {
       console.log('\n[MX_JPush_Expo] 添加 UserNotifications 导入 ...');
       
-      // 直接替换添加导入
-      // 注意：JPush 的 Objective-C 类会通过 Bridging Header 自动暴露给 Swift
-      const updatedSrc = src.replace(
-        /import React\n/,
-        'import React\nimport UserNotifications\n'
-      );
-      
-      return {
-        contents: updatedSrc,
-        didClear: false,
-        didMerge: true,
-      };
+      return mergeContents({
+        src,
+        newSrc: 'import UserNotifications',
+        tag: 'jpush-swift-import-usernotifications',
+        anchor: /import React/,
+        offset: 1,
+        comment: '//',
+      });
     });
 
     // 2. 在 didFinishLaunchingWithOptions 中添加 JPush 初始化
