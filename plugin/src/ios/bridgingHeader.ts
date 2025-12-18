@@ -21,10 +21,26 @@ export const withIosBridgingHeader: ConfigPlugin = (config) =>
     // 设置桥接头文件路径
     const bridgingHeaderPath =
       '"$(SRCROOT)/$(TARGET_NAME)/$(TARGET_NAME)-Bridging-Header.h"';
-    xcodeProject.addBuildProperty(
-      'SWIFT_OBJC_BRIDGING_HEADER',
-      bridgingHeaderPath
-    );
+    
+    // 遍历所有 build configurations，只为非 widget target 设置 bridging header
+    const configurations = xcodeProject.pbxXCBuildConfigurationSection();
+    
+    for (const key in configurations) {
+      const config = configurations[key];
+      if (config && typeof config === 'object' && config.buildSettings) {
+        const bundleId = config.buildSettings.PRODUCT_BUNDLE_IDENTIFIER;
+        
+        // 如果 bundleIdentifier 包含 "widget"，则清空 SWIFT_OBJC_BRIDGING_HEADER
+        if (bundleId && typeof bundleId === 'string' && bundleId.includes('widget')) {
+          config.buildSettings.SWIFT_OBJC_BRIDGING_HEADER = '""';
+          console.log(`[MX_JPush_Expo] 跳过 widget target: ${bundleId}`);
+        } else if (bundleId) {
+          // 非 widget target，设置 bridging header
+          config.buildSettings.SWIFT_OBJC_BRIDGING_HEADER = bridgingHeaderPath;
+          console.log(`[MX_JPush_Expo] 设置 Bridging Header for: ${bundleId}`);
+        }
+      }
+    }
 
     // 实际创建/修改桥接头文件内容
     const iosDir = path.join(config._internal!.projectRoot, 'ios');
