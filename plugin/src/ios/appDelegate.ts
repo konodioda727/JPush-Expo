@@ -51,17 +51,14 @@ export const withIosAppDelegate: ConfigPlugin = (config) =>
     validator.register('didRegisterForRemoteNotificationsWithDeviceToken', (src) => {
       console.log('\n[MX_JPush_Expo] 添加远程通知方法 ...');
       
-      // 在 application(_:open:options:) 方法后插入
-      const updatedSrc = src.replace(
-        /(return super\.application\(app, open: url, options: options\).*\n.*\})/,
-        `$1\n${getRemoteNotificationMethods()}`
-      );
-      
-      return {
-        contents: updatedSrc,
-        didClear: false,
-        didMerge: true,
-      };
+      return mergeContents({
+        src,
+        newSrc: getRemoteNotificationMethods(),
+        tag: 'jpush-swift-remote-notification-methods',
+        anchor: /return super\.application\(app, open: url, options: options(s*)\)/,
+        offset: 2,  // 跳过 return 语句和闭合的 }
+        comment: '//',
+      });
     });
 
     // 4. 添加 JPUSHRegisterDelegate extension
