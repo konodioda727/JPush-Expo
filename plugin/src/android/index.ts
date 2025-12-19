@@ -7,6 +7,7 @@ import { withAndroidManifestConfig } from './androidManifest';
 import { withAndroidAppBuildGradle } from './appBuildGradle';
 import { withAndroidProjectBuildGradle } from './projectBuildGradle';
 import { withAndroidSettingsGradle } from './settingsGradle';
+import { withAndroidGradleProperties } from './gradleProperties';
 
 /**
  * 应用所有 Android 配置
@@ -18,6 +19,7 @@ export const withAndroidConfig: ConfigPlugin = (config) => {
   config = withAndroidProjectBuildGradle(config);
   config = withAndroidAppBuildGradle(config);
   config = withAndroidSettingsGradle(config);
+  config = withAndroidGradleProperties(config);
 
   return config;
 };

@@ -52,6 +52,22 @@ export const withAndroidProjectBuildGradle: ConfigPlugin = (config) =>
       });
     }
 
+    // 1.1 添加荣耀 Maven 仓库到 buildscript repositories（如果启用了荣耀推送）
+    if (vendorChannels?.honor) {
+      validator.register('jpush-honor-maven-buildscript', (src) => {
+        console.log('\n[MX_JPush_Expo] 配置 buildscript repositories 荣耀 Maven 仓库 ...');
+        
+        return mergeContents({
+          src,
+          newSrc: `maven { url 'https://developer.hihonor.com/repo' }`,
+          tag: 'jpush-honor-maven-buildscript',
+          anchor: /buildscript\s*\{/,
+          offset: 2,  // 跳过 buildscript { 和 repositories {
+          comment: '//',
+        });
+      });
+    }
+
     // 2. 添加厂商通道 classpath 依赖到 buildscript dependencies
     const classpaths = getVendorClasspaths();
     if (classpaths) {
@@ -100,6 +116,45 @@ export const withAndroidProjectBuildGradle: ConfigPlugin = (config) =>
         maven { url 'https://developer.huawei.com/repo/' }
     }`,
             tag: 'jpush-huawei-maven-allprojects',
+            anchor: /allprojects\s*\{/,
+            offset: 1,
+            comment: '//',
+          });
+        }
+      });
+    }
+
+    // 3.1 添加荣耀 Maven 仓库到 allprojects repositories（如果启用了荣耀推送）
+    if (vendorChannels?.honor) {
+      validator.register('jpush-honor-maven-allprojects', (src) => {
+        console.log('\n[MX_JPush_Expo] 配置 allprojects repositories 荣耀 Maven 仓库 ...');
+        
+        // 检查 allprojects 中是否已存在 repositories 块
+        const hasAllprojects = /allprojects\s*\{/.test(src);
+        if (!hasAllprojects) {
+          return { contents: src, didMerge: false, didClear: false };
+        }
+        
+        const hasRepositories = /allprojects\s*\{[^}]*repositories\s*\{/.test(src);
+        
+        if (hasRepositories) {
+          // 在 allprojects 的 repositories 块中添加
+          return mergeContents({
+            src,
+            newSrc: `maven { url 'https://developer.hihonor.com/repo' }`,
+            tag: 'jpush-honor-maven-allprojects',
+            anchor: /allprojects\s*\{/,
+            offset: 2,  // 跳过 allprojects { 和 repositories {
+            comment: '//',
+          });
+        } else {
+          // 创建新的 repositories 块
+          return mergeContents({
+            src,
+            newSrc: `repositories {
+        maven { url 'https://developer.hihonor.com/repo' }
+    }`,
+            tag: 'jpush-honor-maven-allprojects',
             anchor: /allprojects\s*\{/,
             offset: 1,
             comment: '//',

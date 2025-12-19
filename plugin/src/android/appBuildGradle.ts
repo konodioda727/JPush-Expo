@@ -134,6 +134,9 @@ const getJPushDependencies = (): string => {
 			dependencies.push(
 				`// OPPO 厂商`,
 				`implementation 'cn.jiguang.sdk.plugin:oppo:5.9.0'`,
+				`// OPPO 3.1.0 aar 及其以上版本需要添加以下依赖`,
+				`implementation 'com.google.code.gson:gson:2.6.2'`,
+				`implementation 'androidx.annotation:annotation:1.1.0'`,
 			);
 		}
 
@@ -212,7 +215,21 @@ export const withAndroidAppBuildGradle: ConfigPlugin = (config) =>
 			});
 		});
 
-		// 3. 添加 JPush 依赖
+		// 3. 添加通用 libs 目录依赖（用于厂商通道的 jar/aar 文件）
+		validator.register("fileTree", (src) => {
+			console.log("\n[MX_JPush_Expo] 配置 build.gradle libs 目录依赖 ...");
+
+			return mergeContents({
+				src,
+				newSrc: `implementation fileTree(include: ['*.jar','*.aar'], dir: 'libs')`,
+				tag: "jpush-libs-filetree",
+				anchor: /dependencies \{/,
+				offset: 1, // 在 dependencies { 的下一行插入
+				comment: "//",
+			});
+		});
+
+		// 4. 添加 JPush 依赖
 		validator.register(
 			"implementation project(':jpush-react-native')",
 			(src) => {
@@ -229,7 +246,7 @@ export const withAndroidAppBuildGradle: ConfigPlugin = (config) =>
 			},
 		);
 
-		// 4. 添加 apply plugin 语句（在文件末尾）
+		// 5. 添加 apply plugin 语句（在文件末尾）
 		const applyPlugins = getApplyPlugins();
 		if (applyPlugins) {
 			validator.register("apply plugin:", (src) => {
