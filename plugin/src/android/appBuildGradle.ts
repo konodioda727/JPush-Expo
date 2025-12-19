@@ -91,7 +91,7 @@ const getJPushDependencies = (): string => {
 		if (vendorChannels.huawei) {
 			dependencies.push(
 				`// 华为厂商`,
-				`implementation 'com.huawei.hms:push:6.13.0.300'`,
+				`implementation 'com.huawei.agconnect:agconnect-core:1.5.2.300'`,
 				`implementation 'cn.jiguang.sdk.plugin:huawei:5.9.0'`,
 			);
 		}
