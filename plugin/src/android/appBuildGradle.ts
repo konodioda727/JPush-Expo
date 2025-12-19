@@ -171,10 +171,6 @@ const getApplyPlugins = (): string => {
 		plugins.push(`apply plugin: 'com.google.gms.google-services'`);
 	}
 
-	if (vendorChannels?.huawei) {
-		plugins.push(`apply plugin: 'com.huawei.agconnect'`);
-	}
-
 	return plugins.length > 0 ? plugins.join("\n") : "";
 };
 
