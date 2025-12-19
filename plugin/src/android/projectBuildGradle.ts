@@ -22,7 +22,7 @@ const getVendorClasspaths = (): string => {
 
   if (vendorChannels?.huawei) {
     classpaths.push(`// Huawei AGConnect`);
-    classpaths.push(`classpath 'com.huawei.agconnect:agcp:1.5.2.300'`);
+    classpaths.push(`classpath 'com.huawei.agconnect:agcp:1.9.3.302'`);
   }
 
   return classpaths.length > 0 ? classpaths.join('\n        ') : '';

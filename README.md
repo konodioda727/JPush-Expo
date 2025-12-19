@@ -274,9 +274,33 @@ expo prebuild
    ```
 
 ### 常见问题
-- **iOS 推送证书问题**：检查证书是否过期，环境是否匹配（开发/生产）
+
+#### iOS 相关
+- **推送证书问题**：检查证书是否过期，环境是否匹配（开发/生产）
 - **注册 ID 获取失败**：检查网络连接、AppKey 配置、推送权限
 - **冷启动通知丢失**：确保按正确顺序初始化（先设置监听器，再初始化 JPush）
+
+#### Android 相关
+- **Gradle 版本错误**：如果遇到 `com.android.tools.build:gradle is no set in the build.gradle file` 错误，需要在项目根目录的 `android/build.gradle` 中给 Gradle 插件添加版本号：
+  ```gradle
+  buildscript {
+      dependencies {
+          // 修改前
+          classpath('com.android.tools.build:gradle')
+          
+          // 修改后（添加版本号）
+          classpath('com.android.tools.build:gradle:8.6.3')
+      }
+  }
+  ```
+  版本号应与你的项目 Gradle 版本匹配，常见版本：
+  - Expo SDK 51+: `8.6.3` 或更高
+  - Expo SDK 50: `8.3.0`
+
+- **厂商通道推送失败**：
+  - 华为/荣耀/蔚来：检查是否配置了正确的 SHA256 签名指纹
+  - 所有厂商：确认 AppId/AppKey 配置正确
+  - 检查是否下载了必需的配置文件（华为的 `agconnect-services.json`、FCM 的 `google-services.json`）
 
 更多问题排查请参考：[Expo SDK 53+ 集成极光推送 iOS Swift - 常见问题与故障排查](https://juejin.cn/post/7554288083597885467)
 
