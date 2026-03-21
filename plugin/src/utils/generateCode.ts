@@ -79,8 +79,9 @@ function addLines(content: string, find: string | RegExp, offset: number, toAdd:
 
   let lineIndex = lines.findIndex((line) => line.match(find));
   if (lineIndex < 0) {
-    const error = new Error(`Failed to match "${find}" in contents:\n${content}`);
-    // @ts-ignore
+    const error = new Error(`Failed to match "${find}" in contents:\n${content}`) as Error & {
+      code?: string;
+    };
     error.code = 'ERR_NO_MATCH';
     throw error;
   }

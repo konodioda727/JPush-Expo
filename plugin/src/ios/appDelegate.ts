@@ -163,7 +163,7 @@ extension AppDelegate: JPUSHRegisterDelegate {
     if notification.request.trigger is UNPushNotificationTrigger {
       // 处理远程推送
       JPUSHService.handleRemoteNotification(userInfo)
-      print("iOS10 收到远程通知: \(userInfo)")
+      print("iOS10 收到远程通知: \\(userInfo)")
       NotificationCenter.default.post(
         name: NSNotification.Name("J_APNS_NOTIFICATION_ARRIVED_EVENT"),
         object: userInfo
@@ -185,7 +185,7 @@ extension AppDelegate: JPUSHRegisterDelegate {
     if response.notification.request.trigger is UNPushNotificationTrigger {
       // 处理远程推送点击
       JPUSHService.handleRemoteNotification(userInfo)
-      print("iOS10 用户点击了远程通知: \(userInfo)")
+      print("iOS10 用户点击了远程通知: \\(userInfo)")
       NotificationCenter.default.post(
         name: NSNotification.Name("J_APNS_NOTIFICATION_OPENED_EVENT"),
         object: userInfo
@@ -200,7 +200,7 @@ extension AppDelegate: JPUSHRegisterDelegate {
     let userInfo = notification.userInfo
     guard let _ = userInfo else { return }
 
-    print("收到自定义消息: \(userInfo!)")
+    print("收到自定义消息: \\(userInfo!)")
     NotificationCenter.default.post(
       name: NSNotification.Name("J_CUSTOM_NOTIFICATION_EVENT"),
       object: userInfo
@@ -216,7 +216,7 @@ extension AppDelegate: JPUSHRegisterDelegate {
   // 授权状态
   @objc public func jpushNotificationAuthorization(_ status: JPAuthorizationStatus, 
                                                    withInfo info: [AnyHashable : Any]?) {
-    print("receive notification authorization status:\(status.rawValue), info:\(String(describing: info))")
+    print("receive notification authorization status:\\(status.rawValue), info:\\(String(describing: info))")
   }
 }
 `;
