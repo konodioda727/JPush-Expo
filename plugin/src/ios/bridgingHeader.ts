@@ -8,6 +8,122 @@ import { ConfigPlugin, withXcodeProject } from 'expo/config-plugins';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const BRIDGING_HEADER_BUILD_SETTING = 'SWIFT_OBJC_BRIDGING_HEADER';
+const BRIDGING_HEADER_FILE_SUFFIX = '-Bridging-Header.h';
+const J_PUSH_IMPORTS = [
+  '#import <JPUSHService.h>',
+  '#import <RCTJPushModule.h>',
+  '#import <RCTJPushEventQueue.h>',
+];
+
+type XcodeBuildConfiguration = {
+  buildSettings?: Record<string, string | string[] | undefined>;
+};
+
+type XcodeTarget = {
+  name?: string;
+  buildConfigurationList?: string;
+};
+
+const unquote = (value: string): string => value.replace(/^"(.*)"$/, '$1');
+
+function normalizeRelativeHeaderPath(
+  existingPath: string | undefined,
+  targetName: string
+): string {
+  if (!existingPath) {
+    return `${targetName}/${targetName}${BRIDGING_HEADER_FILE_SUFFIX}`;
+  }
+
+  const normalizedPath = unquote(existingPath)
+    .replace(/^\$\(SRCROOT\)\//, '')
+    .replace(/\$\(TARGET_NAME\)/g, targetName)
+    .replace(/\\/g, '/');
+
+  if (!normalizedPath || normalizedPath.startsWith('..')) {
+    return `${targetName}/${targetName}${BRIDGING_HEADER_FILE_SUFFIX}`;
+  }
+
+  return normalizedPath;
+}
+
+function getTargetBuildConfigurations(
+  xcodeProject: {
+    pbxXCConfigurationList: () => Record<string, { buildConfigurations?: { value: string }[] }>;
+    pbxXCBuildConfigurationSection: () => Record<string, XcodeBuildConfiguration>;
+  },
+  target: XcodeTarget
+): XcodeBuildConfiguration[] {
+  const configurationListId = target.buildConfigurationList;
+  if (!configurationListId) {
+    return [];
+  }
+
+  const configurationList = xcodeProject.pbxXCConfigurationList()[configurationListId];
+  if (!configurationList?.buildConfigurations) {
+    return [];
+  }
+
+  const buildConfigurations = xcodeProject.pbxXCBuildConfigurationSection();
+
+  return configurationList.buildConfigurations
+    .map(({ value }) => buildConfigurations[value])
+    .filter(
+      (configuration): configuration is XcodeBuildConfiguration =>
+        Boolean(configuration)
+    );
+}
+
+function getExistingBridgingHeaderPath(
+  configurations: XcodeBuildConfiguration[]
+): string | undefined {
+  for (const configuration of configurations) {
+    const currentValue = configuration.buildSettings?.[BRIDGING_HEADER_BUILD_SETTING];
+    if (typeof currentValue === 'string' && currentValue.trim()) {
+      return currentValue;
+    }
+  }
+
+  return undefined;
+}
+
+function ensureFileContent(filePath: string): void {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+
+  const currentContent = fs.existsSync(filePath)
+    ? fs.readFileSync(filePath, 'utf8')
+    : '';
+  const currentLines = new Set(
+    currentContent
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+  );
+  const missingImports = J_PUSH_IMPORTS.filter((line) => !currentLines.has(line));
+
+  if (missingImports.length === 0 && fs.existsSync(filePath)) {
+    return;
+  }
+
+  const trimmedContent = currentContent.trimEnd();
+  const nextContent = [
+    trimmedContent,
+    trimmedContent ? '' : '',
+    ...missingImports,
+    '',
+  ]
+    .filter((segment, index, list) => {
+      if (segment !== '') {
+        return true;
+      }
+
+      return index === list.length - 1 || list[index - 1] !== '';
+    })
+    .join('\n');
+
+  fs.writeFileSync(filePath, nextContent, 'utf8');
+}
+
 /**
  * 配置 iOS 桥接头文件
  * 支持 React Native 0.79.5+ 的 Swift 新架构
@@ -17,71 +133,44 @@ export const withIosBridgingHeader: ConfigPlugin = (config) =>
     console.log('\n[MX_JPush_Expo] 配置 Bridging Header ...');
 
     const xcodeProject = config.modResults;
+    const appTarget = xcodeProject.getTarget('com.apple.product-type.application');
+    const targetName =
+      appTarget?.target?.name && typeof appTarget.target.name === 'string'
+        ? unquote(appTarget.target.name)
+        : config.modRequest.projectName;
 
-    // 设置桥接头文件路径
-    const bridgingHeaderPath =
-      '"$(SRCROOT)/$(TARGET_NAME)/$(TARGET_NAME)-Bridging-Header.h"';
-    
-    // 遍历所有 build configurations，只为非 widget target 设置 bridging header
-    const configurations = xcodeProject.pbxXCBuildConfigurationSection();
-    
-    for (const key in configurations) {
-      const config = configurations[key];
-      if (config && typeof config === 'object' && config.buildSettings) {
-        const bundleId = config.buildSettings.PRODUCT_BUNDLE_IDENTIFIER;
-        
-        // 如果 bundleIdentifier 包含 "widget"，则清空 SWIFT_OBJC_BRIDGING_HEADER
-        if (bundleId && typeof bundleId === 'string' && bundleId.includes('widget')) {
-          config.buildSettings.SWIFT_OBJC_BRIDGING_HEADER = '""';
-          console.log(`[MX_JPush_Expo] 跳过 widget target: ${bundleId}`);
-        } else if (bundleId) {
-          // 非 widget target，设置 bridging header
-          config.buildSettings.SWIFT_OBJC_BRIDGING_HEADER = bridgingHeaderPath;
-          console.log(`[MX_JPush_Expo] 设置 Bridging Header for: ${bundleId}`);
-        }
-      }
+    if (!appTarget || !targetName) {
+      console.log('[MX_JPush_Expo] 未找到 iOS app target，跳过 Bridging Header 配置');
+      return config;
     }
 
-    // 实际创建/修改桥接头文件内容
-    const iosDir = path.join(config._internal!.projectRoot, 'ios');
+    const targetConfigurations = getTargetBuildConfigurations(
+      xcodeProject,
+      appTarget.target
+    );
+    const existingBridgingHeaderPath = getExistingBridgingHeaderPath(
+      targetConfigurations
+    );
+    const relativeBridgingHeaderPath = normalizeRelativeHeaderPath(
+      existingBridgingHeaderPath,
+      targetName
+    );
+    const absoluteBridgingHeaderPath = path.join(
+      config.modRequest.platformProjectRoot,
+      relativeBridgingHeaderPath
+    );
 
-    // 尝试查找桥接头文件
-    const possiblePaths = [
-      path.join(iosDir, 'app', 'app-Bridging-Header.h'),
-      path.join(
-        iosDir,
-        config.modRequest.projectName || '',
-        `${config.modRequest.projectName}-Bridging-Header.h`
-      ),
-    ];
+    xcodeProject.updateBuildProperty(
+      BRIDGING_HEADER_BUILD_SETTING,
+      `"${relativeBridgingHeaderPath}"`,
+      undefined,
+      targetName
+    );
 
-    const bridgingHeaderFile = possiblePaths.find((p) => fs.existsSync(p));
-
-    if (bridgingHeaderFile) {
-      let bridgingContent = fs.readFileSync(bridgingHeaderFile, 'utf8');
-
-      // 添加 JPush 相关导入（支持 jpush-react-native@3.1.9）
-      // 注意：不需要导入 JPUSHService.h，Swift 可以直接 import
-      // 只需要导入 React Native 桥接模块
-      const jpushImports = `
-// JPush 相关导入
-#import <JPUSHService.h>
-#import <RCTJPushModule.h>
-#import <RCTJPushEventQueue.h>
-`;
-
-      if (!bridgingContent.includes('JPUSHService.h')) {
-        bridgingContent = bridgingContent.trim() + jpushImports;
-        fs.writeFileSync(bridgingHeaderFile, bridgingContent);
-        console.log('[MX_JPush_Expo] 已更新 Bridging Header 文件');
-      } else {
-        console.log('[MX_JPush_Expo] Bridging Header 已包含 JPush 导入，跳过');
-      }
-    } else {
-      console.log(
-        '[MX_JPush_Expo] 未找到 Bridging Header 文件，将在 prebuild 后自动创建'
-      );
-    }
+    ensureFileContent(absoluteBridgingHeaderPath);
+    console.log(
+      `[MX_JPush_Expo] 已确保 ${targetName} 的 Bridging Header: ${relativeBridgingHeaderPath}`
+    );
 
     return config;
   });
