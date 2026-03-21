@@ -26,22 +26,39 @@ type XcodeTarget = {
 };
 
 const unquote = (value: string): string => value.replace(/^"(.*)"$/, '$1');
+const getDefaultRelativeHeaderPath = (targetName: string): string =>
+  `${targetName}/${targetName}${BRIDGING_HEADER_FILE_SUFFIX}`;
 
 function normalizeRelativeHeaderPath(
   existingPath: string | undefined,
   targetName: string
 ): string {
+  const defaultRelativePath = getDefaultRelativeHeaderPath(targetName);
+
   if (!existingPath) {
-    return `${targetName}/${targetName}${BRIDGING_HEADER_FILE_SUFFIX}`;
+    return defaultRelativePath;
   }
 
-  const normalizedPath = unquote(existingPath)
-    .replace(/^\$\(SRCROOT\)\//, '')
-    .replace(/\$\(TARGET_NAME\)/g, targetName)
-    .replace(/\\/g, '/');
+  const normalizedPath = path.posix
+    .normalize(
+      unquote(existingPath)
+        .replace(/^\$\(SRCROOT\)\//, '')
+        .replace(/\$\(TARGET_NAME\)/g, targetName)
+        .replace(/\\/g, '/')
+        .trim()
+    )
+    .replace(/^\.\//, '');
 
-  if (!normalizedPath || normalizedPath.startsWith('..')) {
-    return `${targetName}/${targetName}${BRIDGING_HEADER_FILE_SUFFIX}`;
+  const isEscapingProjectRoot =
+    !normalizedPath ||
+    normalizedPath === '.' ||
+    normalizedPath === '..' ||
+    normalizedPath.startsWith('../');
+  const isAbsolutePath =
+    path.posix.isAbsolute(normalizedPath) || /^[A-Za-z]:\//.test(normalizedPath);
+
+  if (isEscapingProjectRoot || isAbsolutePath) {
+    return defaultRelativePath;
   }
 
   return normalizedPath;
@@ -82,6 +99,14 @@ function getExistingBridgingHeaderPath(
     if (typeof currentValue === 'string' && currentValue.trim()) {
       return currentValue;
     }
+
+    if (Array.isArray(currentValue)) {
+      for (const value of currentValue) {
+        if (typeof value === 'string' && value.trim()) {
+          return value;
+        }
+      }
+    }
   }
 
   return undefined;
@@ -106,20 +131,15 @@ function ensureFileContent(filePath: string): void {
   }
 
   const trimmedContent = currentContent.trimEnd();
-  const nextContent = [
-    trimmedContent,
-    trimmedContent ? '' : '',
-    ...missingImports,
-    '',
-  ]
-    .filter((segment, index, list) => {
-      if (segment !== '') {
-        return true;
-      }
+  const segments: string[] = [];
 
-      return index === list.length - 1 || list[index - 1] !== '';
-    })
-    .join('\n');
+  if (trimmedContent) {
+    segments.push(trimmedContent, '');
+  }
+
+  segments.push(...missingImports);
+
+  const nextContent = [...segments, ''].join('\n');
 
   fs.writeFileSync(filePath, nextContent, 'utf8');
 }
