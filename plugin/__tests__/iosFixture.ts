@@ -42,11 +42,12 @@ type XcodeModule = {
   project: (filePath: string) => XcodeProject;
 };
 
+const expoPackageRoot = path.dirname(require.resolve('expo/package.json'));
 const plist = require(
-  require.resolve('@expo/plist', { paths: [require.resolve('expo/config-plugins')] })
+  require.resolve('@expo/plist', { paths: [expoPackageRoot] })
 ).default as PlistModule;
 const xcode = require(
-  require.resolve('xcode', { paths: [require.resolve('expo/config-plugins')] })
+  require.resolve('xcode', { paths: [expoPackageRoot] })
 ) as XcodeModule;
 
 export const FIXTURE_ROOT = path.join(__dirname, 'fixtures', 'ios-project');
