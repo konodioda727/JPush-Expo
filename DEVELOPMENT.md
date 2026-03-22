@@ -2,10 +2,17 @@
 
 本文档说明如何开发和维护 mx-jpush-expo 插件。
 
+## 文档导航
+
+- 接入与使用说明：[`README.md`](./README.md)
+- 插件内部结构：[`plugin/README.md`](./plugin/README.md)
+- 历史版本更新：[`CHANGELOG.md`](./CHANGELOG.md)
+
 ## 环境要求
 
-- Node.js >= 16
-- npm >= 7
+- Node.js >= 18.18.0
+- Expo SDK 53 作为仓库开发基线
+- 推荐 pnpm 10 或 npm 10+
 - TypeScript >= 5.0
 
 ## 安装依赖
@@ -14,13 +21,20 @@
 npm install
 ```
 
+或使用：
+
+```bash
+pnpm install
+```
+
 ## 项目结构
 
 插件采用 TypeScript 开发，遵循 Expo 官方最佳实践：
 
 - **源码目录**: `plugin/src/` - TypeScript 源文件
 - **构建目录**: `plugin/build/` - 编译后的 JavaScript 文件
-- **测试目录**: `plugin/__tests__/` - Jest 单元测试
+- **测试目录**: `plugin/__tests__/` - Jest 单元测试与 iOS fixture 回归测试
+- **CI 配置**: `.github/workflows/ci.yml` - build / test / lint 质量检查
 
 ## 开发流程
 
@@ -28,7 +42,7 @@ npm install
 
 所有源码位于 `plugin/src/` 目录：
 
-```
+```text
 plugin/src/
 ├── index.ts           # 主入口
 ├── types.ts           # 类型定义
@@ -52,14 +66,24 @@ npm run build
 
 ```bash
 # 运行所有测试
-npm test
+npm test -- --runInBand
 
 # 监听模式
 npm test -- --watch
 
 # 生成覆盖率报告
 npm test -- --coverage
+
+# 运行 lint
+npm run lint
 ```
+
+当前主线的测试重点：
+
+- `withJPush.test.ts`：参数校验与插件入口基础行为
+- `nativeIosSmoke.test.ts`：iOS 主流程 smoke
+- `nativeIosMods.test.ts`：`Info.plist` 与 Bridging Header 的 fixture 回归测试
+- Android 与 `AppDelegate` 的细粒度 fixture 覆盖会继续在后续 PR 中补齐
 
 ### 4. 清理
 
@@ -144,6 +168,8 @@ const withMyPlugin: ConfigPlugin<MyPluginProps> = (config, props) => {
 
 ## 测试策略
 
+当前仓库更偏向“参数校验 + fixture 回归测试”的组合，而不是只做纯函数单测。
+
 ### 单元测试
 
 测试配置转换逻辑：
@@ -215,6 +241,16 @@ describe('withMyPlugin', () => {
 
 5. 验证生成的原生代码
 
+### 仓库内回归测试
+
+除了业务项目联调，这个仓库还通过 `compileModsAsync` 驱动最小 iOS fixture，直接验证 `Info.plist`、Bridging Header 等原生输出。
+
+这种方式的价值在于：
+
+- 能覆盖正则锚点与模板兼容性
+- 能验证重复执行时的幂等行为
+- 比只检查 helper 返回值更接近真实 `expo prebuild`
+
 ## 发布流程
 
 ### 1. 更新版本
@@ -234,7 +270,8 @@ npm run build
 ### 3. 测试
 
 ```bash
-npm test
+npm test -- --runInBand
+npm run lint
 ```
 
 ### 4. 发布
@@ -268,6 +305,10 @@ A: 检查：
 2. `plugin/build/` 目录是否存在
 3. 运行 `npm run build` 重新构建
 4. 使用 `--clean` 标志重新 prebuild
+
+### Q: 为什么文档拆成了多个 Markdown 文件？
+
+A: 根目录 `README.md` 主要面向接入者，`DEVELOPMENT.md` 面向仓库维护者，`plugin/README.md` 面向插件内部结构说明。这样可以在不删除原有信息的前提下，把内容分层并保持首页可读性。
 
 ## 参考资源
 

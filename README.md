@@ -1,43 +1,104 @@
-# MX-JPUSH-Expo
-expo接入JPUSH脚本
+# MX-JPush-Expo
 
-> 📚 **本项目基于以下掘金文章开发和更新：**
-> - [JPush 集成 Expo](https://juejin.cn/post/7423235127716659239) - 基础集成方案
-> - [Expo SDK 53+ 集成极光推送 iOS Swift](https://juejin.cn/post/7554288083597885467) - 最新 Swift 版本实现
-> - [JPush-expo-config-plugin](https://github.com/RunoMeow/jpush-expo-config-plugin) - 参考实现
+<p align="center">
+  一个面向 <strong>Expo prebuild / Dev Client</strong> 的 JPush Config Plugin。<br />
+  自动注入 iOS / Android 原生配置，并支持主流 Android 厂商通道。
+</p>
 
-## 工作原理
-由于极光推送不支持`expo`模式，因此采用如下方式：
-```text
-`prebuild`为裸工作流 -> 代码注入
+<p align="center">
+  <a href="https://www.npmjs.com/package/mx-jpush-expo"><img alt="npm version" src="https://img.shields.io/npm/v/mx-jpush-expo?logo=npm&label=npm"></a>
+  <a href="https://github.com/konodioda727/JPush-Expo/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/konodioda727/JPush-Expo/ci.yml?branch=main&logo=githubactions&label=CI"></a>
+  <a href="https://github.com/konodioda727/JPush-Expo/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/konodioda727/JPush-Expo"></a>
+  <img alt="Expo SDK 53+" src="https://img.shields.io/badge/Expo%20SDK-53%2B-000020?logo=expo">
+  <img alt="Node >=18.18" src="https://img.shields.io/badge/Node-%3E%3D18.18-339933?logo=node.js&logoColor=white">
+</p>
+
+> [!IMPORTANT]
+> JPush 不支持 Expo Go。本项目面向 `expo prebuild` 后的原生工程，适用于 Dev Client 或原生构建流程。
+
+> [!TIP]
+> 本项目持续参考并吸收以下资料：<br>
+> [JPush 集成 Expo](https://juejin.cn/post/7423235127716659239) /<br>
+> [Expo SDK 53+ 集成极光推送 iOS Swift](https://juejin.cn/post/7554288083597885467) /<br>
+> [RunoMeow/jpush-expo-config-plugin](https://github.com/RunoMeow/jpush-expo-config-plugin)
+
+## 目录
+
+- [为什么使用它](#为什么使用它)
+- [支持矩阵](#支持矩阵)
+- [快速开始](#快速开始)
+- [推荐配置](#推荐配置)
+- [环境变量与厂商通道](#环境变量与厂商通道)
+- [配置说明](#配置说明)
+- [插件会修改哪些原生文件](#插件会修改哪些原生文件)
+- [如何验证生成结果](#如何验证生成结果)
+- [常见问题](#常见问题)
+- [开发与测试](#开发与测试)
+- [项目结构](#项目结构)
+- [最近更新](#最近更新)
+- [致谢与许可](#致谢与许可)
+
+## 为什么使用它
+
+`mx-jpush-expo` 把 Expo 项目接入 JPush 时最容易反复手改的原生步骤，收敛成一次 `expo prebuild`：
+
+- 自动写入 iOS `Info.plist` 的 JPush 配置和后台模式
+- 自动注入 iOS `AppDelegate.swift` 的 JPush 初始化与回调代码
+- 自动复用或创建 Swift `Bridging Header`
+- 自动修改 Android `AndroidManifest.xml`、`build.gradle`、`settings.gradle`
+- 支持华为、FCM、小米、OPPO、VIVO、魅族、荣耀、蔚来等厂商通道注入
+
+适合这些场景：
+
+- 你使用 Expo，但需要 JPush 和厂商通道能力
+- 你希望把原生改动交给 Config Plugin 管理，而不是手改生成代码
+- 你需要在 CI / 团队协作里稳定复现 `prebuild` 输出
+
+## 支持矩阵
+
+| 项目 | 版本 |
+| --- | --- |
+| Expo SDK | `53+` |
+| 仓库开发基线 | `Expo SDK 53` |
+| React Native | `0.76.9` |
+| Node.js | `>= 18.18.0` |
+| `jpush-react-native` | `3.1.9` |
+| `jcore-react-native` | `2.3.0` |
+
+## 快速开始
+
+### 1. 安装依赖
+
+```bash
+npm install mx-jpush-expo
+npm install jpush-react-native@3.1.9 jcore-react-native@^2.3.0
 ```
 
-## 版本要求
-- Expo SDK: 53+
-- 仓库开发基线: Expo SDK 53
-- React Native: 0.76.9（Expo SDK 53 基线版本，由 Expo 锁定）
-- Node.js: 18.18+（仓库开发环境）
-- jpush-react-native: 3.1.9
-- jcore-react-native: 2.3.0
+或使用 `pnpm`：
 
-## 使用方式
-
-### 1.下载
-- 插件下载：
 ```bash
-npm i mx-jpush-expo
-```
-- `jpush`依赖包 `jpush-react-native` 和 `jcore-react-native` 下载（推荐使用指定版本）
-```bash
-npm install jpush-react-native@3.1.9 jcore-react-native@^2.3.0 --save
-# 或使用 pnpm
+pnpm add mx-jpush-expo
 pnpm add jpush-react-native@3.1.9 jcore-react-native@^2.3.0
 ```
 
-### 2.集成
-推荐使用 `app.config.ts`，并把 Android 端的敏感值交给环境变量或 `gradle.properties`。这样 `expo prebuild` 生成的 `android/app/build.gradle` 不会再写入明文。
+### 2. 配置插件
 
-#### 推荐配置
+推荐使用 `app.config.ts`，并把 Android 的敏感值交给环境变量或 `gradle.properties`。
+
+### 3. 生成原生工程
+
+```bash
+npx expo prebuild
+```
+
+只刷新 Android：
+
+```bash
+npx expo prebuild -p android
+```
+
+## 推荐配置
+
 ```ts
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 import 'dotenv/config';
@@ -47,87 +108,79 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    plugins: (config.plugins || []).map(plugin => {
-      const [name, configurations] = plugin as [string, Record<string, any>];
-
-      if (name === 'mx-jpush-expo') {
-        return [
-          name,
-          {
-            ...configurations,
-            apsForProduction: isProduction,
-            appKey: process.env.JPUSH_APP_KEY ?? '',
-            channel: process.env.JPUSH_CHANNEL ?? configurations?.channel ?? '',
-            packageName:
-              process.env.JPUSH_PKGNAME ??
-              configurations?.packageName ??
-              config.android?.package ??
-              '',
-            vendorChannels: {
-              xiaomi: {
-                appId: process.env.JPUSH_XIAOMI_APP_ID,
-                appKey: process.env.JPUSH_XIAOMI_APP_KEY,
-              },
-              oppo: {
-                appKey: process.env.JPUSH_OPPO_APP_KEY,
-                appId: process.env.JPUSH_OPPO_APP_ID,
-                appSecret: process.env.JPUSH_OPPO_APP_SECRET,
-              },
-              vivo: {
-                appKey: process.env.JPUSH_VIVO_APP_KEY,
-                appId: process.env.JPUSH_VIVO_APP_ID,
-              },
-              meizu: {
-                appKey: process.env.JPUSH_MEIZU_APP_KEY,
-                appId: process.env.JPUSH_MEIZU_APP_ID,
-              },
-              honor: {
-                appId: process.env.JPUSH_HONOR_APP_ID,
-              },
-              nio: {
-                appId: process.env.JPUSH_NIO_APP_ID,
-              },
-              huawei: {
-                enabled: true,
-              },
-              fcm: {
-                enabled: true,
-              },
+    plugins: [
+      ...(config.plugins || []),
+      [
+        'mx-jpush-expo',
+        {
+          appKey: process.env.JPUSH_APP_KEY ?? '',
+          channel: process.env.JPUSH_CHANNEL ?? 'developer-default',
+          packageName:
+            process.env.JPUSH_PKGNAME ?? config.android?.package ?? '',
+          apsForProduction: isProduction,
+          vendorChannels: {
+            huawei: { enabled: true },
+            fcm: { enabled: true },
+            xiaomi: {
+              appId: process.env.JPUSH_XIAOMI_APP_ID ?? '',
+              appKey: process.env.JPUSH_XIAOMI_APP_KEY ?? '',
+            },
+            oppo: {
+              appId: process.env.JPUSH_OPPO_APP_ID ?? '',
+              appKey: process.env.JPUSH_OPPO_APP_KEY ?? '',
+              appSecret: process.env.JPUSH_OPPO_APP_SECRET ?? '',
+            },
+            vivo: {
+              appId: process.env.JPUSH_VIVO_APP_ID ?? '',
+              appKey: process.env.JPUSH_VIVO_APP_KEY ?? '',
+            },
+            meizu: {
+              appId: process.env.JPUSH_MEIZU_APP_ID ?? '',
+              appKey: process.env.JPUSH_MEIZU_APP_KEY ?? '',
+            },
+            honor: {
+              appId: process.env.JPUSH_HONOR_APP_ID ?? '',
+            },
+            nio: {
+              appId: process.env.JPUSH_NIO_APP_ID ?? '',
             },
           },
-        ];
-      }
-
-      return plugin;
-    }),
+        },
+      ],
+    ],
   };
 };
 ```
 
-#### Android 端环境变量
-Android `manifestPlaceholders` 现在按下面的优先级取值：
+### 配置要点
+
+- `appKey`、`channel`、`packageName` 仍然是插件必填项
+- iOS 初始化参数会写入 `Info.plist`，不再直接拼进 `AppDelegate.swift`
+- Android `manifestPlaceholders` 优先读取环境变量或 `gradle.properties`
+- `vendorChannels` 决定要注入哪些厂商 SDK 与占位符，厂商密钥本身建议交给环境变量
+
+## 环境变量与厂商通道
+
+Android 端的 `manifestPlaceholders` 读取优先级如下：
 
 1. `System.getenv("...")`
 2. `project.findProperty("...")`
-3. 插件收到的默认值（仅 `JPUSH_PKGNAME`）
-4. 空字符串（其余字段）
+3. 插件收到的默认值，仅 `JPUSH_PKGNAME`
+4. 空字符串，其余字段
 
-可用环境变量名：
+### 可用环境变量
 
-- `JPUSH_APP_KEY`
-- `JPUSH_CHANNEL`
-- `JPUSH_PKGNAME`
-- `JPUSH_XIAOMI_APP_ID`
-- `JPUSH_XIAOMI_APP_KEY`
-- `JPUSH_OPPO_APP_ID`
-- `JPUSH_OPPO_APP_KEY`
-- `JPUSH_OPPO_APP_SECRET`
-- `JPUSH_VIVO_APP_ID`
-- `JPUSH_VIVO_APP_KEY`
-- `JPUSH_MEIZU_APP_ID`
-- `JPUSH_MEIZU_APP_KEY`
-- `JPUSH_HONOR_APP_ID`
-- `JPUSH_NIO_APP_ID`
+| 变量名 | 说明 |
+| --- | --- |
+| `JPUSH_APP_KEY` | JPush AppKey |
+| `JPUSH_CHANNEL` | JPush Channel |
+| `JPUSH_PKGNAME` | Android 包名 |
+| `JPUSH_XIAOMI_APP_ID` / `JPUSH_XIAOMI_APP_KEY` | 小米通道 |
+| `JPUSH_OPPO_APP_ID` / `JPUSH_OPPO_APP_KEY` / `JPUSH_OPPO_APP_SECRET` | OPPO 通道 |
+| `JPUSH_VIVO_APP_ID` / `JPUSH_VIVO_APP_KEY` | VIVO 通道 |
+| `JPUSH_MEIZU_APP_ID` / `JPUSH_MEIZU_APP_KEY` | 魅族通道 |
+| `JPUSH_HONOR_APP_ID` | 荣耀通道 |
+| `JPUSH_NIO_APP_ID` | 蔚来通道 |
 
 示例 `.env`：
 
@@ -141,9 +194,10 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 
 也可以把这些值写到 `android/gradle.properties`，构建时会通过 `project.findProperty(...)` 读取。
 
-#### 配置说明
+## 配置说明
+
 - `appKey`、`channel`、`packageName` 仍然是插件必填项，因为 iOS 注入代码和参数校验发生在 Expo 配置阶段。
-- iOS 现在改为从 `Info.plist` 读取 `JPUSH_APPKEY`、`JPUSH_CHANNEL` 和 `JPUSH_APS_FOR_PRODUCTION`，不再把这些值直接拼进 `AppDelegate.swift`。
+- iOS 现在改为从 `Info.plist` 读取 `JPUSH_APPKEY`、`JPUSH_CHANNEL` 和 `JPUSH_APS_FOR_PRODUCTION`，不再把这些值直接拼接进 `AppDelegate.swift`。
 - 这能避免源码层的明文注入，但不能把它们变成客户端不可见的“秘密”，因为 JPush 初始化参数最终仍会出现在打包产物里。
 - Android 侧生成的 `manifestPlaceholders` 不再把这些值写死到 `build.gradle` 中。
 - `JPUSH_PKGNAME` 现在按 `System.getenv("JPUSH_PKGNAME") -> project.findProperty("JPUSH_PKGNAME") -> 插件收到的 packageName` 回退，不再依赖 `applicationId` 的声明顺序。
@@ -151,39 +205,100 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 - 厂商通道配置是可选的，只需配置你实际使用的厂商。
 - 厂商通道插件版本：**5.9.0**。
 
-#### 厂商通道额外配置
+### 厂商通道额外要求
 
-| 厂商 | 配置文件 | 应用签名 | 说明 |
-|------|---------|---------|------|
+| 厂商 | 额外文件 | 签名要求 | 说明 |
+| --- | --- | --- | --- |
 | **华为** | `agconnect-services.json` | ✅ **必需** | 需在华为开发者联盟申请，配置 SHA256 指纹 |
 | **FCM** | `google-services.json` | ❌ | 需在 Firebase 控制台申请 |
-| **荣耀** | - | ✅ **必需** | 需在荣耀开发者平台配置 SHA256 指纹 |
-| **蔚来** | - | ✅ **必需** | 需在蔚来开发者平台配置应用签名 |
-| **小米** | - | ❌ | 仅需 AppId 和 AppKey |
-| **OPPO** | - | ❌ | 仅需 AppKey、AppId 和 AppSecret |
-| **VIVO** | - | ❌ | 仅需 AppKey 和 AppId |
-| **魅族** | - | ❌ | 仅需 AppKey 和 AppId |
+| **荣耀** | 无 | ✅ **必需** | 需在荣耀开发者平台配置 SHA256 指纹 |
+| **蔚来** | 无 | ✅ **必需** | 需在蔚来开发者平台配置应用签名 |
+| **小米** | 无 | ❌ | 仅需 AppId 和 AppKey |
+| **OPPO** | 无 | ❌ | 仅需 AppKey、AppId 和 AppSecret |
+| **VIVO** | 无 | ❌ | 仅需 AppKey 和 AppId |
+| **魅族** | 无 | ❌ | 仅需 AppKey 和 AppId |
 
-各厂商通道的详细配置步骤请参考极光官方文档：
-
-📖 **[极光推送 - Android 厂商通道参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param)**
+官方参数说明见：[极光推送 Android 厂商通道参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param)
 
 **配置文件位置**：
+
 - 将 `agconnect-services.json`（华为）或 `google-services.json`（FCM）放到 `android/app/` 目录
 
-## 3.`prebuild`
-```bash
-npx expo prebuild -p android
+### Android 签名配置示例
+
+华为、荣耀、蔚来等厂商通道对应用签名更敏感，建议显式配置 release 签名，而不是只依赖默认 debug 签名。
+
+```gradle
+android {
+    ...
+    signingConfigs {
+        release {
+            storeFile file("release.keystore")
+            storePassword "your_store_password"
+            keyAlias "your_key_alias"
+            keyPassword "your_key_password"
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            ...
+        }
+    }
+}
 ```
 
-如果同时需要刷新 iOS 工程，可以使用：
+建议把密码等字段放到 `gradle.properties`，不要直接提交到代码仓库：
 
-```bash
-npx expo prebuild
+```gradle
+// 在 gradle.properties 中配置（不要提交到 Git）
+RELEASE_STORE_PASSWORD=your_store_password
+RELEASE_KEY_PASSWORD=your_key_password
+RELEASE_KEY_ALIAS=your_key_alias
+
+// 在 build.gradle 中读取
+signingConfigs {
+    release {
+        storeFile file("release.keystore")
+        storePassword project.hasProperty('RELEASE_STORE_PASSWORD') ? RELEASE_STORE_PASSWORD : ''
+        keyAlias project.hasProperty('RELEASE_KEY_ALIAS') ? RELEASE_KEY_ALIAS : ''
+        keyPassword project.hasProperty('RELEASE_KEY_PASSWORD') ? RELEASE_KEY_PASSWORD : ''
+    }
+}
 ```
 
-## 4.检验
-重新生成后，检查 `android/app/build.gradle` 中的 `manifestPlaceholders`，应当是下面这种形式，而不是明文：
+## 插件会修改哪些原生文件
+
+| 平台 | 文件 | 作用 |
+| --- | --- | --- |
+| iOS | `ios/<app>/Info.plist` | 写入 `JPUSH_*` 配置并合并 `UIBackgroundModes` |
+| iOS | `ios/<app>/AppDelegate.swift` | 注入 JPush 初始化、APNs 回调和代理扩展 |
+| iOS | `ios/<app>/<target>-Bridging-Header.h` | 复用或创建桥接头文件，保证 import 幂等 |
+| Android | `android/app/src/main/AndroidManifest.xml` | 写入 `JPUSH_APPKEY` / `JPUSH_CHANNEL` meta-data |
+| Android | `android/app/build.gradle` | 注入依赖、`manifestPlaceholders`、`abiFilters`、厂商插件 |
+| Android | `android/build.gradle` | 注入厂商 Maven 仓库与 classpath |
+| Android | `android/settings.gradle` | 注册 `jpush-react-native` / `jcore-react-native` 模块 |
+| Android | `android/gradle.properties` | 写入华为 AGC 兼容性开关 |
+
+## 如何验证生成结果
+
+重新执行 `expo prebuild` 后，建议检查：
+
+### iOS
+
+- `Info.plist` 中存在：
+  - `JPUSH_APPKEY`
+  - `JPUSH_CHANNEL`
+  - `JPUSH_APS_FOR_PRODUCTION`
+- `UIBackgroundModes` 会保留宿主已有值，并补齐：
+  - `fetch`
+  - `remote-notification`
+- `AppDelegate.swift` 中存在 `JPUSHService.setup`
+- 如果项目使用 Swift，插件会优先复用已有 `SWIFT_OBJC_BRIDGING_HEADER`；未配置时会自动创建 `<target>-Bridging-Header.h`
+
+### Android
+
+`android/app/build.gradle` 中的 `manifestPlaceholders` 应保持“运行时读取”，而不是写死明文：
 
 ```gradle
 manifestPlaceholders = [
@@ -193,201 +308,117 @@ manifestPlaceholders = [
 ]
 ```
 
-同时建议检查 iOS 生成结果：
+## 常见问题
 
-- `ios/<app>/Info.plist` 中的 `UIBackgroundModes` 会保留宿主已有值，并自动补齐 `fetch` 和 `remote-notification`
-- 如果项目使用 Swift，插件会优先复用已有 `SWIFT_OBJC_BRIDGING_HEADER`；如果未配置，则自动创建 `<target>-Bridging-Header.h`
-- 重复执行 `expo prebuild` 不会重复追加 JPush 所需的 Bridging Header import
+### 是否支持 Expo Go？
 
-如果你是在业务项目里临时直接改 `node_modules/mx-jpush-expo`，重装依赖后修改会丢失，正式建议使用 `pnpm patch mx-jpush-expo` 固化。
+不支持。JPush 需要原生工程和原生依赖，必须通过 `expo prebuild` 进入 Dev Client 或原生构建流程。
 
-## 更新日志
+### 为什么 iOS 仍然要求在插件配置里填写 `appKey` / `channel`？
 
-### v1.2.2 (2026-03-08)
+因为参数校验和 `Info.plist` 注入都发生在 Expo 配置阶段。它们不会再被直接拼进 `AppDelegate.swift`，但仍然需要在配置阶段提供。
 
-- 修复 `JPUSH_PKGNAME` 依赖 `applicationId` 声明顺序的问题
-- `JPUSH_PKGNAME` 改为按 `环境变量 -> gradle.properties -> 插件 packageName` 回退
+### Android 遇到 Gradle 插件版本错误怎么办？
 
-### v1.2.1 (2026-03-08)
+如果你遇到类似 `com.android.tools.build:gradle is no set in the build.gradle file` 的错误，需要检查业务项目自己的 `android/build.gradle` 与 Expo 版本是否匹配。这不是本插件主动引入的行为变更。
 
-- Android `manifestPlaceholders` 改为在 Gradle 构建时读取环境变量或 `gradle.properties`
-- 不再把 `JPUSH_APPKEY`、`JPUSH_CHANNEL` 和厂商密钥明文写入 `android/app/build.gradle`
-- iOS 改为从 `Info.plist` 读取 JPush 初始化参数，不再把这些值直接注入 `AppDelegate.swift`
-- README 更新为 `app.config.ts + 环境变量` 的推荐用法
+### iOS 推送证书或注册异常怎么排查？
 
-### v1.1.0 (2025-12-17)
+- 检查推送证书是否过期，以及开发 / 生产环境是否匹配
+- 检查 Bundle ID 是否与极光控制台配置完全一致
+- 检查推送权限是否已正确申请
+- 如果是冷启动通知异常，优先检查监听器与 JPush 初始化顺序
 
-**🎉 完整支持 Android 厂商通道**
+### 厂商通道推送失败怎么排查？
 
-- ✨ 新增完整的 Android 厂商通道支持（华为、FCM、小米、OPPO、VIVO、魅族、荣耀、蔚来）
-- ✨ 自动配置厂商通道 SDK 依赖（JPush 5.9.0）
-- ✨ 自动配置 `manifestPlaceholders`（包括 `JPUSH_PKGNAME`）
-- ✨ 自动配置 NDK `abiFilters`
-- ✨ 自动配置华为和 FCM 的 `apply plugin` 语句
-- ✨ 自动配置 project/build.gradle（Maven 仓库和 classpath）
-- ✨ 新增 `packageName` 必填配置项
-- 📝 完善厂商通道配置文档，添加极光官方文档链接
-- 📝 添加应用签名配置说明（华为、荣耀、蔚来必需）
-- 🔧 优化代码结构，移除手动下载 aar 的要求
+- 华为 / 荣耀 / 蔚来：先确认签名或 SHA256 指纹配置正确
+- 所有厂商：确认 AppId / AppKey / AppSecret 是否填写正确
+- 华为 / FCM：确认 `agconnect-services.json` / `google-services.json` 已放到 `android/app/`
 
-### v1.0.2 (2024-09-27)
-> 📖 **参考文章**：[Expo SDK 53+ 集成极光推送 iOS Swift](https://juejin.cn/post/7554288083597885467)
+### 直接改 `node_modules/mx-jpush-expo` 可以吗？
 
-- ✨ 支持 Expo SDK 53+ 和 React Native 0.79.5+
-- ✨ 添加 iOS Swift/OC 混编支持（Bridging Header 配置）
-- ✨ 更新依赖版本：jpush-react-native@3.1.9, jcore-react-native@2.3.0
-- ✨ 添加推送权限说明配置（NSUserTrackingUsageDescription, NSMicrophoneUsageDescription）
-- 🐛 修复 iOS 新架构下的兼容性问题
-- 📝 更新文档，添加最新集成指南
+不建议。重装依赖后会丢失，正式方式建议使用 `pnpm patch mx-jpush-expo` 或维护自己的 fork。
 
-### v1.0.1
-> 📖 **参考文章**：[JPush 集成 Expo](https://juejin.cn/post/7423235127716659239)
+## 开发与测试
 
-- 初始版本发布
-- 支持基础的 iOS 和 Android 集成
+```bash
+npm run build
+npm run test -- --runInBand
+npm run lint
+```
 
-## 注意事项
+相关文档：
 
-### iOS 配置
-1. 确保在 Xcode 中开启 Push Notifications 能力
-2. 在极光推送控制台上传正确的推送证书（Development/Production）
-3. 验证 Bundle ID 与极光控制台完全匹配
-4. 如果使用 Swift，插件会自动复用或创建 Bridging Header，并写入 JPush 所需 import
-5. 插件会合并 `UIBackgroundModes`，不会覆盖宿主已有后台模式
+- 开发与维护流程见 [`DEVELOPMENT.md`](./DEVELOPMENT.md)
+- 插件内部结构见 [`plugin/README.md`](./plugin/README.md)
+- 历史版本更新见 [`CHANGELOG.md`](./CHANGELOG.md)
 
-### Android 配置
-1. 确保在 AndroidManifest.xml 中已声明必要的权限
-2. 检查 Gradle 配置是否正确
-3. **签名配置（重要）**：华为、荣耀等厂商通道需要应用签名才能正常工作
-   - 将签名文件（如 `release.keystore`）放到 `android/app/` 目录
-   - 在 `android/app/build.gradle` 中配置签名：
-   ```gradle
-   android {
-       ...
-       signingConfigs {
-           release {
-               storeFile file("release.keystore")
-               storePassword "your_store_password"
-               keyAlias "your_key_alias"
-               keyPassword "your_key_password"
-           }
-       }
-       buildTypes {
-           release {
-               signingConfig signingConfigs.release
-               ...
-           }
-       }
-   }
-   ```
-   - **安全提示**：不要将密码直接写在代码中，建议使用环境变量或 `gradle.properties`：
-   ```gradle
-   // 在 gradle.properties 中配置（不要提交到 Git）
-   RELEASE_STORE_PASSWORD=your_store_password
-   RELEASE_KEY_PASSWORD=your_key_password
-   RELEASE_KEY_ALIAS=your_key_alias
-   
-   // 在 build.gradle 中读取
-   signingConfigs {
-       release {
-           storeFile file("release.keystore")
-           storePassword project.hasProperty('RELEASE_STORE_PASSWORD') ? RELEASE_STORE_PASSWORD : ''
-           keyAlias project.hasProperty('RELEASE_KEY_ALIAS') ? RELEASE_KEY_ALIAS : ''
-           keyPassword project.hasProperty('RELEASE_KEY_PASSWORD') ? RELEASE_KEY_PASSWORD : ''
-       }
-   }
-   ```
+### 测试覆盖重点
 
-### 常见问题
-
-#### iOS 相关
-- **推送证书问题**：检查证书是否过期，环境是否匹配（开发/生产）
-- **注册 ID 获取失败**：检查网络连接、AppKey 配置、推送权限
-- **冷启动通知丢失**：确保按正确顺序初始化（先设置监听器，再初始化 JPush）
-
-#### Android 相关
-- **Gradle 版本错误**：如果遇到 `com.android.tools.build:gradle is no set in the build.gradle file` 错误，需要在项目根目录的 `android/build.gradle` 中给 Gradle 插件添加版本号：
-  ```gradle
-  buildscript {
-      dependencies {
-          // 修改前
-          classpath('com.android.tools.build:gradle')
-          
-          // 修改后（添加版本号）
-          classpath('com.android.tools.build:gradle:8.6.3')
-      }
-  }
-  ```
-  版本号应与你的项目 Gradle 版本匹配，常见版本：
-  - Expo SDK 51+: `8.6.3` 或更高
-  - Expo SDK 50: `8.3.0`
-
-- **厂商通道推送失败**：
-  - 华为/荣耀/蔚来：检查是否配置了正确的 SHA256 签名指纹
-  - 所有厂商：确认 AppId/AppKey 配置正确
-  - 检查是否下载了必需的配置文件（华为的 `agconnect-services.json`、FCM 的 `google-services.json`）
-
-更多问题排查请参考：[Expo SDK 53+ 集成极光推送 iOS Swift - 常见问题与故障排查](https://juejin.cn/post/7554288083597885467)
+- 参数校验与插件入口 smoke
+- iOS `Info.plist` 合并与 Bridging Header 创建 / 幂等
+- 当前主线以 iOS fixture-based 回归测试为主
+- Android 原生输出和 `AppDelegate` 细粒度回归测试会在后续 PR 中继续补齐
 
 ## 项目结构
 
-```
+```text
 mx-jpush-expo/
-├── app.plugin.js              # 主入口文件
-├── plugin/                    # 插件源码和构建
-│   ├── src/                  # TypeScript 源码
-│   │   ├── index.ts          # 插件主入口
-│   │   ├── types.ts          # 类型定义
-│   │   ├── utils/            # 工具模块
-│   │   │   └── config.ts     # 全局配置管理
-│   │   ├── ios/              # iOS 平台配置
-│   │   │   ├── index.ts      # iOS 配置集成
-│   │   │   ├── infoPlist.ts  # Info.plist 配置
-│   │   │   ├── appDelegate.ts # AppDelegate 实现
-│   │   │   ├── bridgingHeader.ts # Swift/OC 桥接头文件
-│   │   └── android/          # Android 平台配置
-│   │       ├── index.ts      # Android 配置集成
-│   │       ├── androidManifest.ts # AndroidManifest 配置
+├── app.plugin.js                 # 主入口文件
+├── plugin/                       # 插件源码和构建
+│   ├── src/                      # TypeScript 源码
+│   │   ├── index.ts              # 插件主入口
+│   │   ├── types.ts              # 类型定义和参数校验
+│   │   ├── utils/                # 工具模块
+│   │   │   ├── config.ts         # 全局配置管理
+│   │   │   ├── codeValidator.ts  # 注入结果校验
+│   │   │   └── generateCode.ts   # 原生代码注入工具
+│   │   ├── ios/                  # iOS 平台配置
+│   │   │   ├── index.ts          # iOS 配置集成入口
+│   │   │   ├── infoPlist.ts      # Info.plist 配置
+│   │   │   ├── appDelegate.ts    # AppDelegate 实现配置
+│   │   │   └── bridgingHeader.ts # Swift/OC 桥接头文件配置
+│   │   └── android/              # Android 平台配置
+│   │       ├── index.ts          # Android 配置集成入口
+│   │       ├── androidManifest.ts # AndroidManifest.xml 配置
 │   │       ├── appBuildGradle.ts # app/build.gradle 配置
 │   │       ├── projectBuildGradle.ts # project/build.gradle 配置
 │   │       ├── settingsGradle.ts # settings.gradle 配置
 │   │       └── gradleProperties.ts # gradle.properties 配置
-│   ├── build/                # 编译后的 JS 文件（发布到 npm）
-│   ├── __tests__/            # 单元测试
-│   ├── tsconfig.json         # TypeScript 配置
-│   └── jest.config.js        # Jest 测试配置
-├── package.json
-├── README.md
-└── MIGRATION.md              # TypeScript 迁移指南
+│   ├── build/                    # 编译后的 JavaScript 文件（npm 发布）
+│   ├── __tests__/                # 测试目录
+│   │   ├── fixtures/             # 原生工程 fixture
+│   │   │   └── ios-project/
+│   │   ├── iosFixture.ts         # iOS fixture helper
+│   │   └── *.test.ts             # Jest 用例
+│   ├── tsconfig.json             # TypeScript 配置
+│   └── jest.config.js            # Jest 测试配置
+├── .github/workflows/ci.yml      # CI 质量检查
+├── CHANGELOG.md                  # 历史更新日志
+└── README.md                     # 项目说明
 ```
 
-详细的模块说明请查看 [plugin/README.md](./plugin/README.md)
+插件内部说明见 [plugin/README.md](./plugin/README.md)。
 
-## 开发
+## 最近更新
 
-### 构建插件
+- iOS `UIBackgroundModes` 改为合并写入，不再覆盖宿主已有后台模式
+- Swift `Bridging Header` 支持优先复用、缺失自动创建，并保持幂等
+- 补齐 iOS fixture-based 原生回归测试
+- 加入 ESLint 与 CI 质量闭环
+- 对齐 Expo SDK 53 的版本声明与仓库开发基线
+- 历史版本更新已整理到 [CHANGELOG.md](./CHANGELOG.md)
 
-```bash
-npm run build
-```
-
-### 运行测试
-
-```bash
-npm run test
-```
-
-### 清理构建文件
-
-```bash
-npm run clean
-```
-
-## 致谢
+## 致谢与许可
 
 感谢以下掘金文章作者的技术分享：
+
 - [@折七](https://juejin.cn/user/7423235127716659239) - JPush 集成 Expo 基础方案
 
-## License
+同时也感谢以下资料与实现思路的启发：
 
-MIT
+- [JPush 集成 Expo](https://juejin.cn/post/7423235127716659239)
+- [Expo SDK 53+ 集成极光推送 iOS Swift](https://juejin.cn/post/7554288083597885467)
+- [RunoMeow/jpush-expo-config-plugin](https://github.com/RunoMeow/jpush-expo-config-plugin)
+
+本项目使用 [MIT License](./LICENSE)。
