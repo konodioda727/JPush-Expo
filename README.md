@@ -1,26 +1,27 @@
+<div align="center">
+
 # MX-JPush-Expo
 
-<p align="center">
-  一个面向 <strong>Expo prebuild / Dev Client</strong> 的 JPush Config Plugin。<br />
-  自动注入 iOS / Android 原生配置，并支持主流 Android 厂商通道。
-</p>
+一个面向 <strong>Expo prebuild / Dev Client</strong> 的 JPush Config Plugin。<br />
+自动注入 iOS / Android 原生配置，并支持主流 Android 厂商通道。
 
-<p align="center">
+<p>
   <a href="https://www.npmjs.com/package/mx-jpush-expo"><img alt="npm version" src="https://img.shields.io/npm/v/mx-jpush-expo?logo=npm&label=npm"></a>
   <a href="https://github.com/konodioda727/JPush-Expo/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/konodioda727/JPush-Expo/ci.yml?branch=main&logo=githubactions&label=CI"></a>
   <a href="https://github.com/konodioda727/JPush-Expo/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/konodioda727/JPush-Expo"></a>
   <img alt="Expo SDK 53+" src="https://img.shields.io/badge/Expo%20SDK-53%2B-000020?logo=expo">
-  <img alt="Node >=18.18" src="https://img.shields.io/badge/Node-%3E%3D18.18-339933?logo=node.js&logoColor=white">
 </p>
+
+</div>
 
 > [!IMPORTANT]
 > JPush 不支持 Expo Go。本项目面向 `expo prebuild` 后的原生工程，适用于 Dev Client 或原生构建流程。
 
 > [!TIP]
 > 本项目持续参考并吸收以下资料：<br>
-> [JPush 集成 Expo](https://juejin.cn/post/7423235127716659239) /<br>
-> [Expo SDK 53+ 集成极光推送 iOS Swift](https://juejin.cn/post/7554288083597885467) /<br>
-> [RunoMeow/jpush-expo-config-plugin](https://github.com/RunoMeow/jpush-expo-config-plugin)
+> - [JPush 集成 Expo](https://juejin.cn/post/7423235127716659239)
+> - [Expo SDK 53+ 集成极光推送 iOS Swift](https://juejin.cn/post/7554288083597885467)
+> - [RunoMeow/jpush-expo-config-plugin](https://github.com/RunoMeow/jpush-expo-config-plugin)
 
 ## 目录
 
