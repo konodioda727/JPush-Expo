@@ -9,6 +9,10 @@ plugin/
 ├── src/
 │   ├── index.ts
 │   ├── types.ts
+│   ├── utils/
+│   │   ├── config.ts
+│   │   ├── codeValidator.ts
+│   │   └── generateCode.ts
 │   ├── ios/
 │   │   ├── index.ts
 │   │   ├── infoPlist.ts
@@ -21,15 +25,10 @@ plugin/
 │   │   ├── projectBuildGradle.ts
 │   │   ├── settingsGradle.ts
 │   │   └── gradleProperties.ts
-│   └── utils/
-│       ├── codeValidator.ts
-│       └── generateCode.ts
 ├── __tests__/
 │   ├── fixtures/
-│   │   ├── ios-project/
-│   │   └── android-project/
+│   │   └── ios-project/
 │   ├── iosFixture.ts
-│   ├── androidFixture.ts
 │   └── *.test.ts
 ├── build/
 ├── tsconfig.json
@@ -40,21 +39,22 @@ plugin/
 
 | 模块 | 职责 |
 | --- | --- |
-| `src/index.ts` | 插件入口，负责参数校验、配置归一化和平台分发 |
-| `src/types.ts` | 类型定义、参数校验、内部 resolved config |
+| `src/index.ts` | 插件入口，负责参数校验、配置初始化和平台分发 |
+| `src/types.ts` | 类型定义与参数校验 |
 | `src/ios/*` | iOS 原生输出注入 |
 | `src/android/*` | Android 原生输出注入 |
+| `src/utils/config.ts` | 当前主线的共享配置流转 |
 | `src/utils/*` | 代码注入与校验工具 |
 | `__tests__/fixtures/*` | 最小原生模板，用于回归测试 |
-| `iosFixture.ts` / `androidFixture.ts` | fixture 生命周期、复制、编译与读取 helper |
+| `iosFixture.ts` | iOS fixture 生命周期、复制、编译与读取 helper |
 
 ## 当前实现约束
 
 ### 配置流转
 
 - 对外入口仍然使用 `JPushPluginProps`
-- 插件入口会先做参数校验，再生成内部 resolved config
-- 平台模块通过显式传参拿到配置，不再依赖模块级全局可变状态
+- 插件入口会先做参数校验，再通过 `setConfig/get*` 在模块间共享配置
+- 当前主线仍依赖模块级配置流转；如果后续继续重构，可再收敛到显式传参
 
 ### iOS
 
@@ -78,15 +78,14 @@ plugin/
 | --- | --- |
 | `withJPush.test.ts` | 参数校验与插件入口基础行为 |
 | `nativeIosSmoke.test.ts` | iOS 主流程 smoke |
-| `nativeIosMods.test.ts` | `Info.plist`、Bridging Header、配置隔离 |
-| `nativeIosAppDelegate.test.ts` | `AppDelegate.swift` 注入与幂等 |
-| `nativeAndroidMods.test.ts` | Android Manifest / Gradle / 配置隔离 |
+| `nativeIosMods.test.ts` | `Info.plist`、Bridging Header |
 
 ### 为什么使用 fixture
 
 - 直接验证 `compileModsAsync` 的真实输出
 - 能覆盖正则锚点、幂等性和模板兼容性
 - 比只断言 helper 返回值更接近业务项目里的 `expo prebuild`
+- Android 与 `AppDelegate` 的细粒度 fixture 覆盖可以继续在后续 PR 中补齐
 
 ## 本地开发
 

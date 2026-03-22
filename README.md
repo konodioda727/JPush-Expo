@@ -121,27 +121,27 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             huawei: { enabled: true },
             fcm: { enabled: true },
             xiaomi: {
-              appId: process.env.JPUSH_XIAOMI_APP_ID,
-              appKey: process.env.JPUSH_XIAOMI_APP_KEY,
+              appId: process.env.JPUSH_XIAOMI_APP_ID ?? '',
+              appKey: process.env.JPUSH_XIAOMI_APP_KEY ?? '',
             },
             oppo: {
-              appId: process.env.JPUSH_OPPO_APP_ID,
-              appKey: process.env.JPUSH_OPPO_APP_KEY,
-              appSecret: process.env.JPUSH_OPPO_APP_SECRET,
+              appId: process.env.JPUSH_OPPO_APP_ID ?? '',
+              appKey: process.env.JPUSH_OPPO_APP_KEY ?? '',
+              appSecret: process.env.JPUSH_OPPO_APP_SECRET ?? '',
             },
             vivo: {
-              appId: process.env.JPUSH_VIVO_APP_ID,
-              appKey: process.env.JPUSH_VIVO_APP_KEY,
+              appId: process.env.JPUSH_VIVO_APP_ID ?? '',
+              appKey: process.env.JPUSH_VIVO_APP_KEY ?? '',
             },
             meizu: {
-              appId: process.env.JPUSH_MEIZU_APP_ID,
-              appKey: process.env.JPUSH_MEIZU_APP_KEY,
+              appId: process.env.JPUSH_MEIZU_APP_ID ?? '',
+              appKey: process.env.JPUSH_MEIZU_APP_KEY ?? '',
             },
             honor: {
-              appId: process.env.JPUSH_HONOR_APP_ID,
+              appId: process.env.JPUSH_HONOR_APP_ID ?? '',
             },
             nio: {
-              appId: process.env.JPUSH_NIO_APP_ID,
+              appId: process.env.JPUSH_NIO_APP_ID ?? '',
             },
           },
         },
@@ -206,6 +206,49 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 
 官方参数说明见：[极光推送 Android 厂商通道参数获取](https://docs.jiguang.cn/jpush/client/Android/android_3rd_param)
 
+### Android 签名配置示例
+
+华为、荣耀、蔚来等厂商通道对应用签名更敏感，建议显式配置 release 签名，而不是只依赖默认 debug 签名。
+
+```gradle
+android {
+    ...
+    signingConfigs {
+        release {
+            storeFile file("release.keystore")
+            storePassword "your_store_password"
+            keyAlias "your_key_alias"
+            keyPassword "your_key_password"
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            ...
+        }
+    }
+}
+```
+
+建议把密码等字段放到 `gradle.properties`，不要直接提交到代码仓库：
+
+```gradle
+// 在 gradle.properties 中配置（不要提交到 Git）
+RELEASE_STORE_PASSWORD=your_store_password
+RELEASE_KEY_PASSWORD=your_key_password
+RELEASE_KEY_ALIAS=your_key_alias
+
+// 在 build.gradle 中读取
+signingConfigs {
+    release {
+        storeFile file("release.keystore")
+        storePassword project.hasProperty('RELEASE_STORE_PASSWORD') ? RELEASE_STORE_PASSWORD : ''
+        keyAlias project.hasProperty('RELEASE_KEY_ALIAS') ? RELEASE_KEY_ALIAS : ''
+        keyPassword project.hasProperty('RELEASE_KEY_PASSWORD') ? RELEASE_KEY_PASSWORD : ''
+    }
+}
+```
+
 ## 插件会修改哪些原生文件
 
 | 平台 | 文件 | 作用 |
@@ -261,6 +304,19 @@ manifestPlaceholders = [
 
 如果你遇到类似 `com.android.tools.build:gradle is no set in the build.gradle file` 的错误，需要检查业务项目自己的 `android/build.gradle` 与 Expo 版本是否匹配。这不是本插件主动引入的行为变更。
 
+### iOS 推送证书或注册异常怎么排查？
+
+- 检查推送证书是否过期，以及开发 / 生产环境是否匹配
+- 检查 Bundle ID 是否与极光控制台配置完全一致
+- 检查推送权限是否已正确申请
+- 如果是冷启动通知异常，优先检查监听器与 JPush 初始化顺序
+
+### 厂商通道推送失败怎么排查？
+
+- 华为 / 荣耀 / 蔚来：先确认签名或 SHA256 指纹配置正确
+- 所有厂商：确认 AppId / AppKey / AppSecret 是否填写正确
+- 华为 / FCM：确认 `agconnect-services.json` / `google-services.json` 已放到 `android/app/`
+
 ### 直接改 `node_modules/mx-jpush-expo` 可以吗？
 
 不建议。重装依赖后会丢失，正式方式建议使用 `pnpm patch mx-jpush-expo` 或维护自己的 fork。
@@ -275,10 +331,10 @@ npm run lint
 
 ### 测试覆盖重点
 
+- 参数校验与插件入口 smoke
 - iOS `Info.plist` 合并与 Bridging Header 创建 / 幂等
-- iOS `AppDelegate.swift` 注入与幂等
-- Android `Manifest`、Gradle、Settings 和 `gradle.properties` 原生输出
-- fixture-based 回归测试，确保 `compileModsAsync` 输出稳定
+- 当前主线以 iOS fixture-based 回归测试为主
+- Android 原生输出和 `AppDelegate` 细粒度回归测试会在后续 PR 中继续补齐
 
 ## 项目结构
 
@@ -300,10 +356,11 @@ mx-jpush-expo/
 │   │   │   ├── settingsGradle.ts
 │   │   │   └── gradleProperties.ts
 │   │   └── utils/
+│   │       └── config.ts
 │   ├── __tests__/
 │   │   ├── fixtures/
+│   │   │   └── ios-project/
 │   │   ├── iosFixture.ts
-│   │   ├── androidFixture.ts
 │   │   └── *.test.ts
 │   └── build/
 ├── .github/workflows/ci.yml
@@ -316,7 +373,7 @@ mx-jpush-expo/
 
 - iOS `UIBackgroundModes` 改为合并写入，不再覆盖宿主已有后台模式
 - Swift `Bridging Header` 支持优先复用、缺失自动创建，并保持幂等
-- 补齐 iOS / Android fixture-based 原生回归测试
+- 补齐 iOS fixture-based 原生回归测试
 - 加入 ESLint 与 CI 质量闭环
 - 对齐 Expo SDK 53 的版本声明与仓库开发基线
 
