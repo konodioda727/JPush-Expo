@@ -5,7 +5,7 @@
  * 支持 Expo SDK 53+ 和 React Native 0.79.5+
  * 
  * @author MuxiStudio
- * @version 1.2.2
+ * @version 1.2.3-beta.0
  * 
  * 参考文档：
  * - JPush 集成 Expo: https://juejin.cn/post/7423235127716659239
