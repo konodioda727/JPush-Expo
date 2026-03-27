@@ -64,6 +64,184 @@ export function mergeContents({
   return { contents: src, didClear: false, didMerge: false };
 }
 
+export function mergeContentsAtLine({
+  src,
+  newSrc,
+  tag,
+  lineIndex,
+  offset = 0,
+  comment = '//',
+}: {
+  src: string;
+  newSrc: string;
+  tag: string;
+  lineIndex: number;
+  comment?: string;
+  offset?: number;
+}): MergeResults {
+  const header = createGeneratedHeaderComment(newSrc, tag, comment);
+  if (!src.includes(header)) {
+    const sanitizedTarget = removeGeneratedContents(src, tag);
+    return {
+      contents: addLinesAtIndex(sanitizedTarget ?? src, lineIndex, offset, [
+        header,
+        ...newSrc.split('\n'),
+        `${comment} @generated end ${tag}`,
+      ]),
+      didMerge: true,
+      didClear: !!sanitizedTarget,
+    };
+  }
+
+  return { contents: src, didClear: false, didMerge: false };
+}
+
+export function mergeContentsAtEnd({
+  src,
+  newSrc,
+  tag,
+  comment = '//',
+}: {
+  src: string;
+  newSrc: string;
+  tag: string;
+  comment?: string;
+}): MergeResults {
+  const header = createGeneratedHeaderComment(newSrc, tag, comment);
+  if (src.includes(header)) {
+    return { contents: src, didClear: false, didMerge: false };
+  }
+
+  const sanitizedTarget = removeGeneratedContents(src, tag);
+  const target = sanitizedTarget ?? src;
+  const normalizedTarget = target.endsWith('\n') ? target : `${target}\n`;
+  const needsSpacer = normalizedTarget.trim().length > 0 && !normalizedTarget.endsWith('\n\n');
+  const contents = `${normalizedTarget}${needsSpacer ? '\n' : ''}${[
+    header,
+    ...newSrc.split('\n'),
+    `${comment} @generated end ${tag}`,
+  ].join('\n')}\n`;
+
+  return {
+    contents,
+    didMerge: true,
+    didClear: !!sanitizedTarget,
+  };
+}
+
+export function syncGeneratedContents({
+  src,
+  newSrc,
+  tag,
+  anchor,
+  offset = 0,
+  comment = '//',
+}: {
+  src: string;
+  newSrc: string;
+  tag: string;
+  anchor: string | RegExp;
+  comment?: string;
+  offset?: number;
+}): MergeResults {
+  if (!newSrc.trim()) {
+    return removeContents({ src, tag });
+  }
+
+  return mergeContents({
+    src,
+    newSrc,
+    tag,
+    anchor,
+    offset,
+    comment,
+  });
+}
+
+export function syncGeneratedContentsAtLine({
+  src,
+  newSrc,
+  tag,
+  lineIndex,
+  offset = 0,
+  comment = '//',
+}: {
+  src: string;
+  newSrc: string;
+  tag: string;
+  lineIndex: number;
+  comment?: string;
+  offset?: number;
+}): MergeResults {
+  if (!newSrc.trim()) {
+    return removeContents({ src, tag });
+  }
+
+  return mergeContentsAtLine({
+    src,
+    newSrc,
+    tag,
+    lineIndex,
+    offset,
+    comment,
+  });
+}
+
+export function syncGeneratedContentsAtEnd({
+  src,
+  newSrc,
+  tag,
+  comment = '//',
+}: {
+  src: string;
+  newSrc: string;
+  tag: string;
+  comment?: string;
+}): MergeResults {
+  if (!newSrc.trim()) {
+    return removeContents({ src, tag });
+  }
+
+  return mergeContentsAtEnd({
+    src,
+    newSrc,
+    tag,
+    comment,
+  });
+}
+
+export function replaceGeneratedContentsAtLine({
+  src,
+  newSrc,
+  tag,
+  getLineIndex,
+  offset = 0,
+  comment = '//',
+}: {
+  src: string;
+  newSrc: string;
+  tag: string;
+  getLineIndex: (src: string) => number;
+  comment?: string;
+  offset?: number;
+}): MergeResults {
+  if (!newSrc.trim()) {
+    return removeContents({ src, tag });
+  }
+
+  const sanitizedTarget = removeGeneratedContents(src, tag) ?? src;
+  const lineIndex = getLineIndex(sanitizedTarget);
+
+  return mergeContentsAtLine({
+    src: sanitizedTarget,
+    newSrc,
+    tag,
+    lineIndex,
+    offset,
+    comment,
+  });
+}
+
 export function removeContents({ src, tag }: { src: string; tag: string }): MergeResults {
   // Ensure the old generated contents are removed.
   const sanitizedTarget = removeGeneratedContents(src, tag);
@@ -85,6 +263,17 @@ function addLines(content: string, find: string | RegExp, offset: number, toAdd:
     error.code = 'ERR_NO_MATCH';
     throw error;
   }
+
+  return addLinesAtIndex(content, lineIndex, offset, toAdd);
+}
+
+function addLinesAtIndex(content: string, lineIndex: number, offset: number, toAdd: string[]) {
+  const lines = content.split('\n');
+
+  if (lineIndex < 0 || lineIndex >= lines.length) {
+    throw new Error(`Failed to insert contents at invalid line index: ${lineIndex}`);
+  }
+
   for (const newLine of toAdd) {
     lines.splice(lineIndex + offset, 0, newLine);
     lineIndex++;
