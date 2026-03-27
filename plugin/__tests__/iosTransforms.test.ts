@@ -64,6 +64,11 @@ describe('iOS transforms', () => {
       'fetch',
       'remote-notification',
     ]);
+    expect(mergeBackgroundModes('processing')).toEqual([
+      'processing',
+      'fetch',
+      'remote-notification',
+    ]);
 
     const infoPlist = applyIosInfoPlist({
       UIBackgroundModes: ['processing'],
@@ -136,7 +141,10 @@ describe('iOS transforms', () => {
 
   it('should create and update the bridging header file idempotently', () => {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'mx-jpush-expo-'));
-    const bridgingHeaderPath = getBridgingHeaderFilePath(tempRoot, 'app');
+    const bridgingHeaderPath = getBridgingHeaderFilePath(
+      tempRoot,
+      'app/app-Bridging-Header.h'
+    );
 
     syncBridgingHeaderFile(bridgingHeaderPath);
     syncBridgingHeaderFile(bridgingHeaderPath);

@@ -95,6 +95,31 @@ describe('generateCode utils', () => {
     expect(removedEnd).not.toContain("apply plugin: 'demo'");
   });
 
+  it('should clamp generated insertion indexes to file boundaries', () => {
+    const src = ['alpha', 'beta'].join('\n');
+
+    const insertedAtStart = syncGeneratedContentsAtLine({
+      src,
+      newSrc: 'inserted-start',
+      tag: 'start',
+      lineIndex: 0,
+      offset: -10,
+      comment: '//',
+    }).contents;
+    const insertedAtEnd = syncGeneratedContentsAtLine({
+      src,
+      newSrc: 'inserted-end',
+      tag: 'end',
+      lineIndex: 1,
+      offset: 10,
+      comment: '//',
+    }).contents;
+
+    expect(insertedAtStart.startsWith('// @generated begin start')).toBe(true);
+    expect(insertedAtStart).toContain('\nalpha\nbeta');
+    expect(insertedAtEnd.trimEnd().endsWith('// @generated end end')).toBe(true);
+  });
+
   it('should create stable hashes for generated sections', () => {
     expect(createHash('same-content')).toBe(createHash('same-content'));
     expect(createHash('same-content')).not.toBe(createHash('other-content'));

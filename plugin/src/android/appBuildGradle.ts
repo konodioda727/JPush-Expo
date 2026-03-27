@@ -5,6 +5,7 @@
 
 import { ConfigPlugin, withAppBuildGradle } from 'expo/config-plugins';
 import {
+  removeGeneratedContents,
   syncGeneratedContentsAtEnd,
   syncGeneratedContentsAtLine,
 } from '../utils/generateCode';
@@ -21,6 +22,12 @@ type VendorFlags = {
   vivo: boolean;
   xiaomi: boolean;
 };
+
+const LEGACY_DEFAULT_CONFIG_TAGS = [
+  'jpush-ndk-config',
+  'jpush-manifest-placeholders',
+];
+const LEGACY_DEPENDENCY_TAGS = ['jpush-libs-filetree'];
 
 /**
  * 生成 defaultConfig 中的 JPush 配置
@@ -174,8 +181,15 @@ const getApplyPlugins = (): string => {
   return plugins.join('\n');
 };
 
+function removeLegacyGeneratedSections(contents: string, tags: string[]): string {
+  return tags.reduce((currentContents, tag) => {
+    return removeGeneratedContents(currentContents, tag) ?? currentContents;
+  }, contents);
+}
+
 export function applyAndroidAppBuildGradle(contents: string): string {
-  let nextContents = ensureNestedBlock(contents, /^\s*android\s*\{/, 'defaultConfig');
+  let nextContents = removeLegacyGeneratedSections(contents, LEGACY_DEFAULT_CONFIG_TAGS);
+  nextContents = ensureNestedBlock(nextContents, /^\s*android\s*\{/, 'defaultConfig');
   nextContents = ensureTopLevelBlock(nextContents, 'dependencies');
 
   const defaultConfigLine = findLineIndex(nextContents, /^\s*defaultConfig\s*\{/);
@@ -197,6 +211,7 @@ export function applyAndroidAppBuildGradle(contents: string): string {
     throw new Error('[MX_JPush_Expo] 未找到 dependencies 配置块');
   }
 
+  nextContents = removeLegacyGeneratedSections(nextContents, LEGACY_DEPENDENCY_TAGS);
   nextContents = syncGeneratedContentsAtLine({
     src: nextContents,
     newSrc: getJPushDependencies(),

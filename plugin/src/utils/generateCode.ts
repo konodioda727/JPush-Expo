@@ -274,9 +274,16 @@ function addLinesAtIndex(content: string, lineIndex: number, offset: number, toA
     throw new Error(`Failed to insert contents at invalid line index: ${lineIndex}`);
   }
 
+  let insertionIndex = lineIndex + offset;
+  if (insertionIndex < 0) {
+    insertionIndex = 0;
+  } else if (insertionIndex > lines.length) {
+    insertionIndex = lines.length;
+  }
+
   for (const newLine of toAdd) {
-    lines.splice(lineIndex + offset, 0, newLine);
-    lineIndex++;
+    lines.splice(insertionIndex, 0, newLine);
+    insertionIndex += 1;
   }
 
   return lines.join('\n');

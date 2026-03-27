@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import {
   APP_BRIDGING_HEADER_PATH,
   J_PUSH_IMPORTS,
@@ -84,6 +85,41 @@ describe('native iOS config mods', () => {
           new RegExp(importLine.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
         ) ?? [];
       expect(matches).toHaveLength(1);
+    }
+  });
+
+  it('reuses an existing custom Bridging Header path when the app target already defines one', async () => {
+    const projectRoot = createProjectRoot();
+    const pbxprojPath = getFixturePath(projectRoot, PBXPROJ_PATH);
+    const customRelativePath = 'app/Supporting/Shared-Bridging-Header.h';
+    const customHeaderPath = path.join(projectRoot, 'ios', customRelativePath);
+
+    fs.writeFileSync(
+      pbxprojPath,
+      fs
+        .readFileSync(pbxprojPath, 'utf8')
+        .replace(/app\/app-Bridging-Header\.h/g, customRelativePath),
+      'utf8'
+    );
+    fs.rmSync(customHeaderPath, { force: true });
+
+    await compileIosMods(projectRoot);
+
+    const headerContents = fs.readFileSync(customHeaderPath, 'utf8');
+    const appBuildSettings = getTargetBuildSettings(
+      loadXcodeProject(projectRoot),
+      'app'
+    );
+
+    expect(
+      appBuildSettings.every(
+        (buildSettings) =>
+          buildSettings.SWIFT_OBJC_BRIDGING_HEADER === `"${customRelativePath}"`
+      )
+    ).toBe(true);
+
+    for (const importLine of J_PUSH_IMPORTS) {
+      expect(headerContents).toContain(importLine);
     }
   });
 

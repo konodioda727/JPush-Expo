@@ -28,7 +28,7 @@ type XcodeTargetLike = {
 };
 
 type XcodeBuildConfigurationLike = {
-  buildSettings?: Record<string, string>;
+  buildSettings?: Record<string, string | string[] | undefined>;
 };
 
 type XcodeConfigurationListLike = {
@@ -39,6 +39,9 @@ type ApplicationTargetInfo = {
   buildConfigurationIds: string[];
   targetName: string;
 };
+
+const BRIDGING_HEADER_BUILD_SETTING = 'SWIFT_OBJC_BRIDGING_HEADER';
+const BRIDGING_HEADER_FILE_SUFFIX = '-Bridging-Header.h';
 
 function getApplicationTargetInfo(xcodeProject: XcodeProjectLike): ApplicationTargetInfo {
   const applicationTarget = xcodeProject.getTarget(APPLICATION_PRODUCT_TYPE);
@@ -70,6 +73,83 @@ function getApplicationTargetInfo(xcodeProject: XcodeProjectLike): ApplicationTa
   };
 }
 
+function getDefaultRelativeHeaderPath(targetName: string): string {
+  return `${targetName}/${targetName}${BRIDGING_HEADER_FILE_SUFFIX}`;
+}
+
+function getExistingBridgingHeaderPath(
+  xcodeProject: XcodeProjectLike,
+  buildConfigurationIds: string[]
+): string | undefined {
+  const configurations = xcodeProject.pbxXCBuildConfigurationSection();
+
+  for (const configurationId of buildConfigurationIds) {
+    const currentValue =
+      configurations[configurationId]?.buildSettings?.[BRIDGING_HEADER_BUILD_SETTING];
+
+    if (typeof currentValue === 'string' && currentValue.trim()) {
+      return currentValue;
+    }
+
+    if (Array.isArray(currentValue)) {
+      const firstValue = currentValue.find(
+        (value): value is string => typeof value === 'string' && value.trim().length > 0
+      );
+      if (firstValue) {
+        return firstValue;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeRelativeHeaderPath(
+  existingPath: string | undefined,
+  targetName: string
+): string {
+  const defaultRelativePath = getDefaultRelativeHeaderPath(targetName);
+
+  if (!existingPath) {
+    return defaultRelativePath;
+  }
+
+  const normalizedPath = path.posix
+    .normalize(
+      existingPath
+        .replace(/^"(.*)"$/, '$1')
+        .replace(/^\$\(SRCROOT\)\//, '')
+        .replace(/\$\(TARGET_NAME\)/g, targetName)
+        .replace(/\\/g, '/')
+        .trim()
+    )
+    .replace(/^\.\//, '');
+
+  const isEscapingProjectRoot =
+    !normalizedPath ||
+    normalizedPath === '.' ||
+    normalizedPath === '..' ||
+    normalizedPath.startsWith('../');
+  const isAbsolutePath =
+    path.posix.isAbsolute(normalizedPath) || /^[A-Za-z]:\//.test(normalizedPath);
+
+  if (isEscapingProjectRoot || isAbsolutePath) {
+    return defaultRelativePath;
+  }
+
+  return normalizedPath;
+}
+
+function resolveBridgingHeaderRelativePath(xcodeProject: XcodeProjectLike): string {
+  const applicationTarget = getApplicationTargetInfo(xcodeProject);
+  const existingPath = getExistingBridgingHeaderPath(
+    xcodeProject,
+    applicationTarget.buildConfigurationIds
+  );
+
+  return normalizeRelativeHeaderPath(existingPath, applicationTarget.targetName);
+}
+
 export function applyBridgingHeaderBuildSettings(
   xcodeProject: XcodeProjectLike,
   bridgingHeaderPath: string
@@ -90,8 +170,11 @@ export function applyBridgingHeaderBuildSettings(
   return applicationTarget.targetName;
 }
 
-export function getBridgingHeaderFilePath(projectRoot: string, targetName: string): string {
-  return path.join(projectRoot, 'ios', targetName, `${targetName}-Bridging-Header.h`);
+export function getBridgingHeaderFilePath(
+  projectRoot: string,
+  relativeHeaderPath: string
+): string {
+  return path.join(projectRoot, 'ios', relativeHeaderPath);
 }
 
 export function upsertBridgingHeaderImports(content: string): string {
@@ -131,13 +214,15 @@ export const withIosBridgingHeader: ConfigPlugin = (config) =>
     console.log('\n[MX_JPush_Expo] 配置 Bridging Header ...');
 
     const xcodeProject = config.modResults as unknown as XcodeProjectLike;
-    const applicationTarget = getApplicationTargetInfo(xcodeProject);
-    const bridgingHeaderPath = `"${applicationTarget.targetName}/${applicationTarget.targetName}-Bridging-Header.h"`;
-    const targetName = applyBridgingHeaderBuildSettings(xcodeProject, bridgingHeaderPath);
+    const relativeBridgingHeaderPath = resolveBridgingHeaderRelativePath(xcodeProject);
+    applyBridgingHeaderBuildSettings(
+      xcodeProject,
+      `"${relativeBridgingHeaderPath}"`
+    );
 
     const bridgingHeaderFilePath = getBridgingHeaderFilePath(
       config.modRequest.projectRoot,
-      targetName
+      relativeBridgingHeaderPath
     );
 
     syncBridgingHeaderFile(bridgingHeaderFilePath);

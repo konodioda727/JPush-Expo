@@ -5,6 +5,7 @@
 
 import { ConfigPlugin, withProjectBuildGradle } from 'expo/config-plugins';
 import {
+  removeGeneratedContents,
   syncGeneratedContentsAtLine,
 } from '../utils/generateCode';
 import {
@@ -19,6 +20,14 @@ type ProjectVendorFlags = {
   honor: boolean;
   huawei: boolean;
 };
+
+const LEGACY_PROJECT_BUILD_TAGS = [
+  'jpush-huawei-maven-buildscript',
+  'jpush-honor-maven-buildscript',
+  'jpush-vendor-classpaths',
+  'jpush-huawei-maven-allprojects',
+  'jpush-honor-maven-allprojects',
+];
 
 function getProjectVendorFlags(): ProjectVendorFlags {
   const vendorChannels = getVendorChannels();
@@ -99,8 +108,14 @@ function ensureProjectAllprojectsBlock(src: string): string {
   return nextContents;
 }
 
+function removeLegacyGeneratedSections(contents: string): string {
+  return LEGACY_PROJECT_BUILD_TAGS.reduce((currentContents, tag) => {
+    return removeGeneratedContents(currentContents, tag) ?? currentContents;
+  }, contents);
+}
+
 export function applyAndroidProjectBuildGradle(contents: string): string {
-  let nextContents = contents;
+  let nextContents = removeLegacyGeneratedSections(contents);
 
   const buildscriptRepositories = getBuildscriptRepositories();
   const buildscriptClasspaths = getVendorClasspaths();

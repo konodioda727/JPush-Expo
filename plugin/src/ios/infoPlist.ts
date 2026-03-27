@@ -10,11 +10,19 @@ type InfoPlistShape = Record<string, unknown> & {
   JPUSH_APS_FOR_PRODUCTION?: boolean;
   JPUSH_APPKEY?: string;
   JPUSH_CHANNEL?: string;
-  UIBackgroundModes?: string[];
+  UIBackgroundModes?: string[] | string;
 };
 
-export function mergeBackgroundModes(existingModes?: string[]): string[] {
-  const modes = new Set(existingModes ?? []);
+export function mergeBackgroundModes(
+  existingModes?: string[] | string
+): string[] {
+  const modes = new Set(
+    Array.isArray(existingModes)
+      ? existingModes
+      : typeof existingModes === 'string'
+        ? [existingModes]
+        : []
+  );
   modes.add('fetch');
   modes.add('remote-notification');
   return Array.from(modes);
