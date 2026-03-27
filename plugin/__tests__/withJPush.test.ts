@@ -63,4 +63,30 @@ describe('withJPush', () => {
       });
     }).toThrow('[MX_JPush_Expo] apsForProduction 必须是布尔值');
   });
+
+  it('should require vendorChannels.huawei.enabled when Huawei config is present', () => {
+    expect(() => {
+      validateProps({
+        appKey: 'test-app-key',
+        channel: 'test-channel',
+        packageName: 'com.example.test',
+        vendorChannels: {
+          huawei: {} as any,
+        },
+      });
+    }).toThrow('[MX_JPush_Expo] vendorChannels.huawei.enabled 必须存在且为布尔值');
+  });
+
+  it('should require vendorChannels.fcm.enabled to be a boolean when FCM config is present', () => {
+    expect(() => {
+      validateProps({
+        appKey: 'test-app-key',
+        channel: 'test-channel',
+        packageName: 'com.example.test',
+        vendorChannels: {
+          fcm: { enabled: 'true' as any },
+        },
+      });
+    }).toThrow('[MX_JPush_Expo] vendorChannels.fcm.enabled 必须存在且为布尔值');
+  });
 });
