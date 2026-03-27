@@ -3,27 +3,31 @@
  * 参考: https://juejin.cn/post/7554288083597885467
  */
 
-import { ConfigPlugin, withInfoPlist } from "expo/config-plugins";
-import { getAppKey, getApsForProduction, getChannel } from "../utils/config";
+import { ConfigPlugin, withInfoPlist } from 'expo/config-plugins';
+import { getAppKey, getApsForProduction, getChannel } from '../utils/config';
 
-const REQUIRED_BACKGROUND_MODES = ["fetch", "remote-notification"] as const;
+type InfoPlistShape = Record<string, unknown> & {
+  JPUSH_APS_FOR_PRODUCTION?: boolean;
+  JPUSH_APPKEY?: string;
+  JPUSH_CHANNEL?: string;
+  UIBackgroundModes?: string[];
+};
 
-function mergeBackgroundModes(
-	existingModes: string[] | string | undefined,
-): string[] {
-	const mergedModes = new Set(
-		Array.isArray(existingModes)
-			? existingModes
-			: typeof existingModes === "string"
-				? [existingModes]
-				: [],
-	);
+export function mergeBackgroundModes(existingModes?: string[]): string[] {
+  const modes = new Set(existingModes ?? []);
+  modes.add('fetch');
+  modes.add('remote-notification');
+  return Array.from(modes);
+}
 
-	for (const mode of REQUIRED_BACKGROUND_MODES) {
-		mergedModes.add(mode);
-	}
-
-	return Array.from(mergedModes);
+export function applyIosInfoPlist(infoPlist: InfoPlistShape): InfoPlistShape {
+  return {
+    ...infoPlist,
+    UIBackgroundModes: mergeBackgroundModes(infoPlist.UIBackgroundModes),
+    JPUSH_APPKEY: getAppKey(),
+    JPUSH_CHANNEL: getChannel(),
+    JPUSH_APS_FOR_PRODUCTION: getApsForProduction(),
+  };
 }
 
 /**
@@ -31,14 +35,7 @@ function mergeBackgroundModes(
  * 添加推送通知所需的后台模式
  */
 export const withIosInfoPlist: ConfigPlugin = (config) =>
-	withInfoPlist(config, (config) => {
-		// 添加后台模式支持（推送通知必需）
-		config.modResults.UIBackgroundModes = mergeBackgroundModes(
-			config.modResults.UIBackgroundModes,
-		);
-		config.modResults.JPUSH_APPKEY = getAppKey();
-		config.modResults.JPUSH_CHANNEL = getChannel();
-		config.modResults.JPUSH_APS_FOR_PRODUCTION = getApsForProduction();
-
-		return config;
-	});
+  withInfoPlist(config, (config) => {
+    config.modResults = applyIosInfoPlist(config.modResults as InfoPlistShape) as typeof config.modResults;
+    return config;
+  });

@@ -5,81 +5,104 @@
  */
 
 import { ConfigPlugin, withAppDelegate } from 'expo/config-plugins';
-import { mergeContents } from '../utils/generateCode';
-import { Validator } from '../utils/codeValidator';
+import {
+  replaceGeneratedContentsAtLine,
+  syncGeneratedContentsAtEnd,
+} from '../utils/generateCode';
+import { findBlockRange, findLastLineIndex, findLineIndex } from '../utils/sourceCode';
+
+const DID_FINISH_LAUNCHING_PATTERN =
+  /\bdidFinishLaunchingWithOptions\b/;
+const APP_DELEGATE_CLASS_PATTERN = /\bclass\s+AppDelegate\b/;
+
+function getLastImportLine(src: string): number {
+  const lineIndex = findLastLineIndex(src, /^import\s+/);
+  if (lineIndex < 0) {
+    throw new Error('[MX_JPush_Expo] 未找到 Swift import 区域');
+  }
+
+  return lineIndex;
+}
+
+function getDidFinishLaunchingInsertionLine(src: string): number {
+  const methodRange = findBlockRange(src, DID_FINISH_LAUNCHING_PATTERN);
+  if (!methodRange) {
+    throw new Error('[MX_JPush_Expo] 未找到 didFinishLaunchingWithOptions 方法');
+  }
+
+  const returnLine = findLineIndex(
+    src,
+    /return\s+super\.application\(application,\s*didFinishLaunchingWithOptions:\s*launchOptions\)/,
+    methodRange.startLine,
+    methodRange.endLine
+  );
+
+  return returnLine >= 0 ? returnLine : methodRange.endLine;
+}
+
+function getAppDelegateClassClosingLine(src: string): number {
+  const classRange = findBlockRange(src, APP_DELEGATE_CLASS_PATTERN);
+  if (!classRange) {
+    throw new Error('[MX_JPush_Expo] 未找到 AppDelegate 类定义');
+  }
+
+  return classRange.endLine;
+}
+
+export function applyIosAppDelegate(contents: string): string {
+  let nextContents = replaceGeneratedContentsAtLine({
+    src: contents,
+    newSrc: 'import UserNotifications',
+    tag: 'jpush-swift-import-usernotifications',
+    getLineIndex: getLastImportLine,
+    offset: 1,
+    comment: '//',
+  }).contents;
+
+  nextContents = replaceGeneratedContentsAtLine({
+    src: nextContents,
+    newSrc: getJPushInitialization(),
+    tag: 'jpush-swift-initialization',
+    getLineIndex: getDidFinishLaunchingInsertionLine,
+    offset: 0,
+    comment: '//',
+  }).contents;
+
+  nextContents = replaceGeneratedContentsAtLine({
+    src: nextContents,
+    newSrc: getRemoteNotificationMethods(),
+    tag: 'jpush-swift-remote-notification-methods',
+    getLineIndex: getAppDelegateClassClosingLine,
+    offset: 0,
+    comment: '//',
+  }).contents;
+
+  nextContents = syncGeneratedContentsAtEnd({
+    src: nextContents,
+    newSrc: getJPushDelegateExtension(),
+    tag: 'jpush-swift-delegate-extension',
+    comment: '//',
+  }).contents;
+
+  return nextContents;
+}
 
 /**
  * 配置 iOS AppDelegate
  */
 export const withIosAppDelegate: ConfigPlugin = (config) =>
   withAppDelegate(config, (config) => {
-    const validator = new Validator(config.modResults.contents);
-
-    // 1. 添加 UserNotifications 导入
-    validator.register('import UserNotifications', (src) => {
-      console.log('\n[MX_JPush_Expo] 添加 UserNotifications 导入 ...');
-      
-      return mergeContents({
-        src,
-        newSrc: 'import UserNotifications',
-        tag: 'jpush-swift-import-usernotifications',
-        anchor: /import React/,
-        offset: 1,
-        comment: '//',
-      });
-    });
-
-    // 2. 在 didFinishLaunchingWithOptions 中添加 JPush 初始化
-    validator.register('JPUSHService.register', (src) => {
-      console.log('\n[MX_JPush_Expo] 添加 JPush 初始化代码 ...');
-      return mergeContents({
-        src,
-        newSrc: getJPushInitialization(),
-        tag: 'jpush-swift-initialization',
-        anchor: /return super\.application\(application, didFinishLaunchingWithOptions: launchOptions\)/,
-        offset: -1,
-        comment: '//',
-      });
-    });
-
-    // 3. 添加远程通知方法
-    validator.register('didRegisterForRemoteNotificationsWithDeviceToken', (src) => {
-      console.log('\n[MX_JPush_Expo] 添加远程通知方法 ...');
-      
-      return mergeContents({
-        src,
-        newSrc: getRemoteNotificationMethods(),
-        tag: 'jpush-swift-remote-notification-methods',
-        anchor: /return super\.application\(app, open: url, options: options(s*)\)/,
-        offset: 2,  // 跳过 return 语句和闭合的 }
-        comment: '//',
-      });
-    });
-
-    // 4. 添加 JPUSHRegisterDelegate extension
-    validator.register('extension AppDelegate', (src) => {
-      console.log('\n[MX_JPush_Expo] 添加 JPUSHRegisterDelegate extension ...');
-      return mergeContents({
-        src,
-        newSrc: getJPushDelegateExtension(),
-        tag: 'jpush-swift-delegate-extension',
-        anchor: /class ReactNativeDelegate/,
-        offset: 0,
-        comment: '//',
-      });
-    });
-
-    config.modResults.contents = validator.invoke();
+    console.log('\n[MX_JPush_Expo] 配置 iOS AppDelegate ...');
+    config.modResults.contents = applyIosAppDelegate(config.modResults.contents);
     return config;
   });
-
 
 /**
  * JPush 初始化代码（Swift）
  * 基于官方文档，适配 Expo
  */
 const getJPushInitialization = (): string => {
-const jpushInit = `
+  return `
     // JPush 注册配置
     let entity = JPUSHRegisterEntity()
     if #available(iOS 12.0, *) {
@@ -114,9 +137,7 @@ const jpushInit = `
       selector: #selector(self.networkDidReceiveMessage(_:)),
       name: NSNotification.Name.jpfNetworkDidReceiveMessage,
       object: nil
-    )
-`
-return jpushInit
+    )`;
 };
 
 /**
@@ -152,8 +173,7 @@ const getRemoteNotificationMethods = (): string => {
  * 基于官方文档
  */
 const getJPushDelegateExtension = (): string => {
-  return `
-extension AppDelegate: JPUSHRegisterDelegate {
+  return `extension AppDelegate: JPUSHRegisterDelegate {
 
   @objc public func jpushNotificationCenter(_ center: UNUserNotificationCenter,
                                      willPresent notification: UNNotification,
@@ -163,7 +183,7 @@ extension AppDelegate: JPUSHRegisterDelegate {
     if notification.request.trigger is UNPushNotificationTrigger {
       // 处理远程推送
       JPUSHService.handleRemoteNotification(userInfo)
-      print("iOS10 收到远程通知: \(userInfo)")
+      print("iOS10 收到远程通知: \\(userInfo)")
       NotificationCenter.default.post(
         name: NSNotification.Name("J_APNS_NOTIFICATION_ARRIVED_EVENT"),
         object: userInfo
@@ -185,7 +205,7 @@ extension AppDelegate: JPUSHRegisterDelegate {
     if response.notification.request.trigger is UNPushNotificationTrigger {
       // 处理远程推送点击
       JPUSHService.handleRemoteNotification(userInfo)
-      print("iOS10 用户点击了远程通知: \(userInfo)")
+      print("iOS10 用户点击了远程通知: \\(userInfo)")
       NotificationCenter.default.post(
         name: NSNotification.Name("J_APNS_NOTIFICATION_OPENED_EVENT"),
         object: userInfo
@@ -200,24 +220,23 @@ extension AppDelegate: JPUSHRegisterDelegate {
     let userInfo = notification.userInfo
     guard let _ = userInfo else { return }
 
-    print("收到自定义消息: \(userInfo!)")
+    print("收到自定义消息: \\(String(describing: userInfo))")
     NotificationCenter.default.post(
       name: NSNotification.Name("J_CUSTOM_NOTIFICATION_EVENT"),
       object: userInfo
     )
   }
-  
+
   // 通知设置
-  @objc public func jpushNotificationCenter(_ center: UNUserNotificationCenter, 
+  @objc public func jpushNotificationCenter(_ center: UNUserNotificationCenter,
                                            openSettingsFor notification: UNNotification?) {
     print("打开通知设置")
   }
-  
+
   // 授权状态
-  @objc public func jpushNotificationAuthorization(_ status: JPAuthorizationStatus, 
+  @objc public func jpushNotificationAuthorization(_ status: JPAuthorizationStatus,
                                                    withInfo info: [AnyHashable : Any]?) {
-    print("receive notification authorization status:\(status.rawValue), info:\(String(describing: info))")
+    print("receive notification authorization status:\\(status.rawValue), info:\\(String(describing: info))")
   }
-}
-`;
+}`;
 };
