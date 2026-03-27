@@ -81,9 +81,10 @@ npm run lint
 当前主线的测试重点：
 
 - `withJPush.test.ts`：参数校验与插件入口基础行为
-- `nativeIosSmoke.test.ts`：iOS 主流程 smoke
-- `nativeIosMods.test.ts`：`Info.plist` 与 Bridging Header 的 fixture 回归测试
-- Android 与 `AppDelegate` 的细粒度 fixture 覆盖会继续在后续 PR 中补齐
+- `utils.test.ts`：生成区段与源码定位 helper 的幂等/回收测试
+- `androidTransforms.test.ts`：Android 纯转换函数与 vendor 开关回收测试
+- `iosTransforms.test.ts`：`Info.plist`、`AppDelegate`、Bridging Header 的纯转换测试
+- `nativeAndroidMods.test.ts` / `nativeIos*.test.ts`：fixture 项目上的原生回归测试
 
 ### 4. 清理
 
