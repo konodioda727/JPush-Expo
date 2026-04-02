@@ -17,11 +17,11 @@ export function getVendorChannels(): VendorChannelConfig | undefined {
 /**
  * 获取厂商通道开启状态标记
  */
-export function getProjectVendorFlags(): Record<string, boolean> {
-  const channels = getVendorChannels();
+export function getProjectVendorFlags(vendorChannels?: VendorChannelConfig): Record<string, boolean> {
+  const channels = vendorChannels || getVendorChannels();
   if (!channels) return {};
   return Object.fromEntries(
-    Object.entries(channels).map(([key, value]) => [key, Boolean(value?.enabled)])
+    Object.entries(channels).map(([key, value]) => [key, Boolean(value?.enabled || value?.appId || value?.appKey)])
   );
 }
 
@@ -32,13 +32,18 @@ export const LEGACY_PROJECT_BUILD_TAGS = [
   'jpush-buildscript-repositories',
   'jpush-buildscript-classpaths',
   'jpush-allprojects-repositories',
+  'jpush-huawei-maven-buildscript',
+  'jpush-honor-maven-buildscript',
+  'jpush-vendor-classpaths',
+  'jpush-huawei-maven-allprojects',
+  'jpush-honor-maven-allprojects',
 ];
 
 /**
  * 获取buildscript需要添加的maven仓库配置
  */
-export function getBuildscriptRepositories(): string {
-  const flags = getProjectVendorFlags();
+export function getBuildscriptRepositories(vendorChannels?: VendorChannelConfig): string {
+  const flags = getProjectVendorFlags(vendorChannels);
   const repos: string[] = [];
   if (flags.huawei) {
     repos.push(`maven { url 'https://developer.huawei.com/repo/' }`);

@@ -204,7 +204,11 @@ function getDefaultConfigSnippet(): string {
   return `${getNdkConfig()}\n${getManifestPlaceholders('', {})}`;
 }
 
-export function applyAndroidAppBuildGradle(contents: string): string {
+export function applyAndroidAppBuildGradle(
+  contents: string,
+  vendorChannels?: VendorChannelConfig,
+  packageName?: string
+): string {
   let nextContents = removeLegacyGeneratedSections(contents, LEGACY_DEFAULT_CONFIG_TAGS);
   nextContents = ensureNestedBlock(nextContents, /^\s*android\s*\{/, 'defaultConfig');
   nextContents = ensureTopLevelBlock(nextContents, 'dependencies');
@@ -216,7 +220,7 @@ export function applyAndroidAppBuildGradle(contents: string): string {
 
   nextContents = syncGeneratedContentsAtLine({
     src: nextContents,
-    newSrc: getDefaultConfigSnippet(),
+    newSrc: `${getNdkConfig()}\n${getManifestPlaceholders(packageName || '', vendorChannels)}`,
     tag: 'jpush-default-config',
     lineIndex: defaultConfigLine,
     offset: 1,
@@ -231,7 +235,7 @@ export function applyAndroidAppBuildGradle(contents: string): string {
   nextContents = removeLegacyGeneratedSections(nextContents, LEGACY_DEPENDENCY_TAGS);
   nextContents = syncGeneratedContentsAtLine({
     src: nextContents,
-    newSrc: getJPushDependencies(),
+    newSrc: getJPushDependencies(vendorChannels),
     tag: 'jpush-dependencies',
     lineIndex: dependenciesLine,
     offset: 1,
@@ -240,7 +244,7 @@ export function applyAndroidAppBuildGradle(contents: string): string {
 
   nextContents = syncGeneratedContentsAtEnd({
     src: nextContents,
-    newSrc: getApplyPlugins(),
+    newSrc: getApplyPlugins(vendorChannels),
     tag: 'jpush-apply-plugins',
     comment: '//',
   }).contents;
@@ -285,6 +289,37 @@ export function withAndroidAppBuildGradle(
         comment: '//',
       });
     });
+
+    validator.register('jpush-dependencies', (src) => {
+      console.log('\n[MX_JPush_Expo] 配置 build.gradle JPush 依赖 ...');
+
+      return mergeContents({
+        src,
+        newSrc: getJPushDependencies(props.vendorChannels),
+        tag: 'jpush-dependencies',
+        anchor: /dependencies\s*\{/,
+        offset: 1,
+        comment: '//',
+      });
+    });
+
+    if (props.vendorChannels) {
+      const applyPlugins = getApplyPlugins(props.vendorChannels);
+      if (applyPlugins) {
+        validator.register('jpush-apply-plugins', (src) => {
+          console.log('\n[MX_JPush_Expo] 配置 build.gradle apply plugins ...');
+
+          return mergeContents({
+            src,
+            newSrc: applyPlugins,
+            tag: 'jpush-apply-plugins',
+            anchor: /^$/,
+            offset: 0,
+            comment: '//',
+          });
+        });
+      }
+    }
 
     nextConfig.modResults.contents = validator.invoke();
 

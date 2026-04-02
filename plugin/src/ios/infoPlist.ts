@@ -9,7 +9,7 @@ import { ResolvedJPushPluginProps } from '../types';
 
 const REQUIRED_BACKGROUND_MODES = ['fetch', 'remote-notification'] as const;
 
-function mergeBackgroundModes(
+export function mergeBackgroundModes(
   existingModes: string[] | string | undefined
 ): string[] {
   const mergedModes = new Set(
@@ -31,18 +31,30 @@ function mergeBackgroundModes(
  * 配置 iOS Info.plist
  * 添加推送通知所需的后台模式
  */
+/**
+ * 配置 iOS Info.plist
+ * 添加推送通知所需的后台模式
+ */
+export function applyIosInfoPlist(
+  infoPlist: Record<string, any>,
+  props: ResolvedJPushPluginProps
+): Record<string, any> {
+  infoPlist.UIBackgroundModes = mergeBackgroundModes(
+    infoPlist.UIBackgroundModes
+  );
+  infoPlist.JPUSH_APPKEY = props.appKey;
+  infoPlist.JPUSH_CHANNEL = props.channel;
+  infoPlist.JPUSH_APS_FOR_PRODUCTION = props.apsForProduction;
+
+  return infoPlist;
+}
+
 export function withIosInfoPlist(
   config: ExpoConfig,
   props: ResolvedJPushPluginProps
 ): ExpoConfig {
   return withInfoPlist(config, (nextConfig) => {
-    nextConfig.modResults.UIBackgroundModes = mergeBackgroundModes(
-      nextConfig.modResults.UIBackgroundModes
-    );
-    nextConfig.modResults.JPUSH_APPKEY = props.appKey;
-    nextConfig.modResults.JPUSH_CHANNEL = props.channel;
-    nextConfig.modResults.JPUSH_APS_FOR_PRODUCTION = props.apsForProduction;
-
+    nextConfig.modResults = applyIosInfoPlist(nextConfig.modResults, props);
     return nextConfig;
   });
 }

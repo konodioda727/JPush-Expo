@@ -13,7 +13,6 @@ import { Validator } from '../utils/codeValidator';
 
 /**
  * 获取厂商通道开启标记
-
  */
 const getVendorClasspaths = (vendorChannels?: VendorChannelConfig): string => {
   const isHuaweiEnabled = vendorChannels?.huawei?.enabled === true;
@@ -30,38 +29,48 @@ const getVendorClasspaths = (vendorChannels?: VendorChannelConfig): string => {
     classpaths.push(`classpath 'com.huawei.agconnect:agcp:1.9.3.302'`);
   }
 
-  return classpaths.join('\\n        ');
+  return classpaths.join('\n        ');
 };
 
 /**
  * 生成 allprojects repositories 仓库依赖
  */
-const getAllprojectsRepositories = (): string => {
-  const vendorFlags = getProjectVendorFlags();
+const getAllprojectsRepositories = (vendorChannels?: VendorChannelConfig): string => {
+  const flags = getProjectVendorFlags(vendorChannels);
   const repositories: string[] = [];
 
-  if (vendorFlags.huawei) {
+  if (flags.huawei) {
     repositories.push(`maven { url 'https://developer.huawei.com/repo/' }`);
   }
 
-  if (vendorFlags.honor) {
+  if (flags.honor) {
     repositories.push(`maven { url 'https://developer.hihonor.com/repo' }`);
   }
 
-  return repositories.join('\\n        ');
+  return repositories.join('\n        ');
 };
 
 function ensureProjectBuildscriptBlock(src: string): string {
-  let nextContents = ensureTopLevelBlock(src, 'buildscript');
-  nextContents = ensureNestedBlock(nextContents, /^\\s*buildscript\\s*\\{/, 'repositories');
-  nextContents = ensureNestedBlock(nextContents, /^\\s*buildscript\\s*\\{/, 'dependencies');
-  return nextContents;
+  try {
+    let nextContents = ensureTopLevelBlock(src, 'buildscript');
+    nextContents = ensureNestedBlock(nextContents, /^\s*buildscript\s*\{/, 'repositories');
+    nextContents = ensureNestedBlock(nextContents, /^\s*buildscript\s*\{/, 'dependencies');
+    return nextContents;
+  } catch (error) {
+    console.warn('[MX_JPush_Expo] 无法确保 buildscript 块结构:', error);
+    return src;
+  }
 }
 
 function ensureProjectAllprojectsBlock(src: string): string {
-  let nextContents = ensureTopLevelBlock(src, 'allprojects');
-  nextContents = ensureNestedBlock(nextContents, /^\\s*allprojects\\s*\\{/, 'repositories');
-  return nextContents;
+  try {
+    let nextContents = ensureTopLevelBlock(src, 'allprojects');
+    nextContents = ensureNestedBlock(nextContents, /^\s*allprojects\s*\{/, 'repositories');
+    return nextContents;
+  } catch (error) {
+    console.warn('[MX_JPush_Expo] 无法确保 allprojects 块结构:', error);
+    return src;
+  }
 }
 
 function removeLegacyGeneratedSections(contents: string): string {
@@ -70,24 +79,28 @@ function removeLegacyGeneratedSections(contents: string): string {
   }, contents);
 }
 
-export function applyAndroidProjectBuildGradle(contents: string): string {
+export function applyAndroidProjectBuildGradle(
+  contents: string,
+  vendorChannels?: VendorChannelConfig
+): string {
   let nextContents = removeLegacyGeneratedSections(contents);
 
-  const buildscriptRepositories = getBuildscriptRepositories();
-  const buildscriptClasspaths = getVendorClasspaths();
+  const buildscriptRepositories = getBuildscriptRepositories(vendorChannels);
+  const buildscriptClasspaths = getVendorClasspaths(vendorChannels);
+  
   if (buildscriptRepositories || buildscriptClasspaths) {
     nextContents = ensureProjectBuildscriptBlock(nextContents);
   }
 
-  const allprojectsRepositories = getAllprojectsRepositories();
+  const allprojectsRepositories = getAllprojectsRepositories(vendorChannels);
   if (allprojectsRepositories) {
     nextContents = ensureProjectAllprojectsBlock(nextContents);
   }
 
   const buildscriptRepositoriesRange = findNestedBlockRange(
     nextContents,
-    /^\\s*buildscript\\s*\\{/,
-    /^\\s*repositories\\s*\\{/
+    /^\s*buildscript\s*\{/,
+    /^\s*repositories\s*\{/
   );
   if (buildscriptRepositoriesRange) {
     nextContents = syncGeneratedContentsAtLine({
@@ -102,8 +115,8 @@ export function applyAndroidProjectBuildGradle(contents: string): string {
 
   const buildscriptDependenciesRange = findNestedBlockRange(
     nextContents,
-    /^\\s*buildscript\\s*\\{/,
-    /^\\s*dependencies\\s*\\{/
+    /^\s*buildscript\s*\{/,
+    /^\s*dependencies\s*\{/
   );
   if (buildscriptDependenciesRange) {
     nextContents = syncGeneratedContentsAtLine({
@@ -118,8 +131,8 @@ export function applyAndroidProjectBuildGradle(contents: string): string {
 
   const allprojectsRepositoriesRange = findNestedBlockRange(
     nextContents,
-    /^\\s*allprojects\\s*\\{/,
-    /^\\s*repositories\\s*\\{/
+    /^\s*allprojects\s*\{/,
+    /^\s*repositories\s*\{/
   );
   if (allprojectsRepositoriesRange) {
     nextContents = syncGeneratedContentsAtLine({
@@ -135,143 +148,16 @@ export function applyAndroidProjectBuildGradle(contents: string): string {
   return nextContents;
 }
 
-/**
- * 配置 Android project/build.gradle
- */
 export function withAndroidProjectBuildGradle(
   config: ExpoConfig,
-  props: Pick<ResolvedJPushPluginProps, 'vendorChannels'>
+  props: { vendorChannels?: any }
 ): ExpoConfig {
-  return withProjectBuildGradle(config, (nextConfig) => {
+  return withProjectBuildGradle(config, (config) => {
     const { vendorChannels } = props;
-    const isHuaweiEnabled = vendorChannels?.huawei?.enabled === true;
-    const validator = new Validator(nextConfig.modResults.contents);
-
-    if (isHuaweiEnabled) {
-      validator.register('jpush-huawei-maven-buildscript', (src: string) => {
-        console.log(
-          '\\n[MX_JPush_Expo] 配置 buildscript repositories 华为 Maven 仓库 ...'
-        );
-
-        return mergeContents({
-          src,
-          newSrc: `maven { url 'https://developer.huawei.com/repo/' }`,
-          tag: 'jpush-huawei-maven-buildscript',
-          anchor: /buildscript\\s*\\{/,
-          offset: 2,
-          comment: '//',
-        });
-      });
-    }
-
-    if (vendorChannels?.honor) {
-      validator.register('jpush-honor-maven-buildscript', (src: string) => {
-        console.log(
-          '\\n[MX_JPush_Expo] 配置 buildscript repositories 荣耀 Maven 仓库 ...'
-        );
-
-        return mergeContents({
-          src,
-          newSrc: `maven { url 'https://developer.hihonor.com/repo' }`,
-          tag: 'jpush-honor-maven-buildscript',
-          anchor: /buildscript\\s*\\{/,
-          offset: 2,
-          comment: '//',
-        });
-      });
-    }
-
-    const classpaths = getVendorClasspaths(vendorChannels);
-    if (classpaths) {
-      validator.register('classpath', (src: string) => {
-        console.log(
-          '\\n[MX_JPush_Expo] 配置 buildscript dependencies classpath ...'
-        );
-
-        return mergeContents({
-          src,
-          newSrc: classpaths,
-          tag: 'jpush-vendor-classpaths',
-          anchor: /dependencies\\s*\\{/,
-          offset: 1,
-          comment: '//',
-        });
-      });
-    }
-
-    if (isHuaweiEnabled) {
-      validator.register('jpush-huawei-maven-allprojects', (src: string) => {
-        console.log(
-          '\\n[MX_JPush_Expo] 配置 allprojects repositories 华为 Maven 仓库 ...'
-        );
-
-        if (!/allprojects\\s*\\{/.test(src)) {
-          return { contents: src, didMerge: false, didClear: false };
-        }
-
-        const hasRepositories = /allprojects\\s*\\{[^}]*repositories\\s*\\{/.test(src);
-
-        if (hasRepositories) {
-          return mergeContents({
-            src,
-            newSrc: `maven { url 'https://developer.huawei.com/repo/' }`,
-            tag: 'jpush-huawei-maven-allprojects',
-            anchor: /allprojects\\s*\\{/,
-            offset: 2,
-            comment: '//',
-          });
-        }
-
-        return mergeContents({
-          src,
-          newSrc: `repositories {
-        maven { url 'https://developer.huawei.com/repo/' }
-    }`,
-          tag: 'jpush-huawei-maven-allprojects',
-          anchor: /allprojects\\s*\\{/,
-          offset: 1,
-          comment: '//',
-        });
-      });
-    }
-
-    if (vendorChannels?.honor) {
-      validator.register('jpush-honor-maven-allprojects', (src) => {
-        console.log(
-          '\\n[MX_JPush_Expo] 配置 allprojects repositories 荣耀 Maven 仓库 ...'
-        );
-
-        if (!/allprojects\\s*\\{/.test(src)) {
-          return { contents: src, didMerge: false, didClear: false };
-        }
-
-        const hasRepositories = /allprojects\\s*\\{[^}]*repositories\\s*\\{/.test(src);
-
-        if (hasRepositories) {
-          return mergeContents({
-            src,
-            newSrc: `maven { url 'https://developer.hihonor.com/repo' }`,
-            tag: 'jpush-honor-maven-allprojects',
-            anchor: /allprojects\\s*\\{/,
-            offset: 2,
-            comment: '//',
-          });
-        }
-
-        return mergeContents({
-          src,
-          newSrc: `repositories {
-        maven { url 'https://developer.hihonor.com/repo' }
-    }`,
-          tag: 'jpush-honor-maven-allprojects',
-          anchor: /allprojects\\s*\\{/,
-          offset: 1,
-          comment: '//',
-        });
-      });
-    }
-
-    nextConfig.modResults.contents = validator.invoke();
-    return nextConfig;
+    config.modResults.contents = applyAndroidProjectBuildGradle(
+      config.modResults.contents,
+      vendorChannels
+    );
+    return config;
   });
 }

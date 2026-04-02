@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { compileModsAsync } from 'expo/config-plugins';
 import withJPush from '../src';
 import {
@@ -16,7 +17,6 @@ import {
   writeInfoPlist,
 } from './iosFixture';
 import { createExpoConfig, createPluginProps } from './testProps';
-
 registerIosFixtureLifecycleHooks();
 
 describe('native iOS config mods', () => {

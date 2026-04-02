@@ -70,10 +70,13 @@ describe('iOS transforms', () => {
       'remote-notification',
     ]);
 
-    const infoPlist = applyIosInfoPlist({
-      UIBackgroundModes: ['processing'],
-      CFBundleDisplayName: 'Demo',
-    });
+    const infoPlist = applyIosInfoPlist(
+      {
+        UIBackgroundModes: ['processing'],
+        CFBundleDisplayName: 'Demo',
+      },
+      { appKey: 'demo-app-key', channel: 'demo-channel', packageName: 'com.demo.app', apsForProduction: true }
+    );
 
     expect(infoPlist.UIBackgroundModes).toEqual([
       'processing',
