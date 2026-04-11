@@ -34,12 +34,14 @@ const gradleEnv = (key: string, fallback = '""'): string =>
 
 const getManifestPlaceholders = (
   packageName: string,
+  appKey: string,
+  channel: string,
   vendorChannels?: VendorChannelConfig
 ): string => {
   const placeholders: string[] = [
     `JPUSH_PKGNAME: ${gradleEnv('JPUSH_PKGNAME', `"${packageName}"`)}`,
-    `JPUSH_APPKEY: ${gradleEnv('JPUSH_APP_KEY')}`,
-    `JPUSH_CHANNEL: ${gradleEnv('JPUSH_CHANNEL')}`,
+    `JPUSH_APPKEY: ${gradleEnv('JPUSH_APP_KEY', `"${appKey}"`)}`,
+    `JPUSH_CHANNEL: ${gradleEnv('JPUSH_CHANNEL', `"${channel}"`)}`,
   ];
 
   if (vendorChannels?.meizu) {
@@ -205,7 +207,9 @@ function removeLegacyGeneratedSections(contents: string, tags: string[]): string
 export function applyAndroidAppBuildGradle(
   contents: string,
   vendorChannels?: VendorChannelConfig,
-  packageName?: string
+  packageName?: string,
+  appKey?: string,
+  channel?: string
 ): string {
   let nextContents = removeLegacyGeneratedSections(contents, LEGACY_DEFAULT_CONFIG_TAGS);
   nextContents = ensureNestedBlock(nextContents, /^\s*android\s*\{/, 'defaultConfig');
@@ -218,7 +222,7 @@ export function applyAndroidAppBuildGradle(
 
   nextContents = syncGeneratedContentsAtLine({
     src: nextContents,
-    newSrc: `${getNdkConfig()}\n${getManifestPlaceholders(packageName || '', vendorChannels)}`,
+    newSrc: `${getNdkConfig()}\n${getManifestPlaceholders(packageName || '', appKey || '', channel || '', vendorChannels)}`,
     tag: 'jpush-default-config',
     lineIndex: defaultConfigLine,
     offset: 1,
@@ -255,7 +259,7 @@ export function applyAndroidAppBuildGradle(
  */
 export function withAndroidAppBuildGradle(
   config: ExpoConfig,
-  props: Pick<ResolvedJPushPluginProps, 'packageName' | 'vendorChannels'>
+  props: Pick<ResolvedJPushPluginProps, 'packageName' | 'appKey' | 'channel' | 'vendorChannels'>
 ): ExpoConfig {
   return withAppBuildGradle(config, (nextConfig) => {
     const validator = new Validator(nextConfig.modResults.contents);
@@ -280,7 +284,12 @@ export function withAndroidAppBuildGradle(
 
       return mergeContents({
         src,
-        newSrc: getManifestPlaceholders(props.packageName, props.vendorChannels),
+        newSrc: getManifestPlaceholders(
+          props.packageName,
+          props.appKey,
+          props.channel,
+          props.vendorChannels
+        ),
         tag: 'jpush-manifest-placeholders',
         anchor: /versionName\s+["'][\d.]+["']/,
         offset: 1,

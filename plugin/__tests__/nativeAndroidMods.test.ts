@@ -54,10 +54,10 @@ describe('native Android config mods', () => {
       'JPUSH_PKGNAME: System.getenv("JPUSH_PKGNAME") ?: (project.findProperty("JPUSH_PKGNAME") ?: "com.example.test")'
     );
     expect(appBuildGradle).toContain(
-      'JPUSH_APPKEY: System.getenv("JPUSH_APP_KEY") ?: (project.findProperty("JPUSH_APP_KEY") ?: "")'
+      'JPUSH_APPKEY: System.getenv("JPUSH_APP_KEY") ?: (project.findProperty("JPUSH_APP_KEY") ?: "tp-key")'
     );
     expect(appBuildGradle).toContain(
-      'JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: "")'
+      'JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: "tp-chan")'
     );
     expect(appBuildGradle).not.toContain(
       "implementation 'com.google.firebase:firebase-messaging:24.1.0'"
@@ -251,6 +251,28 @@ describe('native Android config mods', () => {
       "implementation 'com.huawei.hms:push:6.13.0.300'"
     );
     expect(gradlePropertiesB).toContain('apmsInstrumentationEnabled=false');
+  });
+
+  it('persists JPush defaults into Android manifestPlaceholders for non-EAS builds', async () => {
+    const projectRoot = createProjectRoot();
+
+    await compileAndroidMods(projectRoot, {
+      appKey: 'non-eas-app-key',
+      channel: 'non-eas-channel',
+      packageName: 'com.example.non.eas',
+    });
+
+    const appBuildGradle = readFixtureFile(projectRoot, APP_BUILD_GRADLE_PATH);
+
+    expect(appBuildGradle).toContain(
+      'JPUSH_PKGNAME: System.getenv("JPUSH_PKGNAME") ?: (project.findProperty("JPUSH_PKGNAME") ?: "com.example.non.eas")'
+    );
+    expect(appBuildGradle).toContain(
+      'JPUSH_APPKEY: System.getenv("JPUSH_APP_KEY") ?: (project.findProperty("JPUSH_APP_KEY") ?: "non-eas-app-key")'
+    );
+    expect(appBuildGradle).toContain(
+      'JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: "non-eas-channel")'
+    );
   });
 
   it('does not inject Huawei or FCM integrations when their enabled flags are false', async () => {

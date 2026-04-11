@@ -125,6 +125,45 @@ function validateBooleanVendorChannel(
   }
 }
 
+function validateRequiredVendorChannelStringField(
+  vendorChannels: VendorChannelConfig | undefined,
+  key: 'meizu' | 'xiaomi' | 'oppo' | 'vivo' | 'honor' | 'nio',
+  requiredField: string
+): void {
+  const channel = vendorChannels?.[key];
+
+  if (!channel) {
+    return;
+  }
+
+  const value = channel[requiredField as keyof typeof channel];
+
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(
+      `[MX_JPush_Expo] vendorChannels.${key}.${requiredField} 是必填项，且必须是非空字符串`
+    );
+  }
+}
+
+function validateVendorChannels(
+  vendorChannels: VendorChannelConfig | undefined
+): void {
+  validateBooleanVendorChannel(vendorChannels, 'huawei', 'huawei');
+  validateBooleanVendorChannel(vendorChannels, 'fcm', 'fcm');
+
+  validateRequiredVendorChannelStringField(vendorChannels, 'meizu', 'appKey');
+  validateRequiredVendorChannelStringField(vendorChannels, 'meizu', 'appId');
+  validateRequiredVendorChannelStringField(vendorChannels, 'xiaomi', 'appId');
+  validateRequiredVendorChannelStringField(vendorChannels, 'xiaomi', 'appKey');
+  validateRequiredVendorChannelStringField(vendorChannels, 'oppo', 'appKey');
+  validateRequiredVendorChannelStringField(vendorChannels, 'oppo', 'appId');
+  validateRequiredVendorChannelStringField(vendorChannels, 'oppo', 'appSecret');
+  validateRequiredVendorChannelStringField(vendorChannels, 'vivo', 'appKey');
+  validateRequiredVendorChannelStringField(vendorChannels, 'vivo', 'appId');
+  validateRequiredVendorChannelStringField(vendorChannels, 'honor', 'appId');
+  validateRequiredVendorChannelStringField(vendorChannels, 'nio', 'appId');
+}
+
 /**
  * 验证插件参数
  * @throws {Error} 当参数无效时抛出错误
@@ -150,8 +189,7 @@ export function validateProps(props: JPushPluginProps | undefined): asserts prop
     throw new Error('[MX_JPush_Expo] apsForProduction 必须是布尔值');
   }
 
-  validateBooleanVendorChannel(props.vendorChannels, 'huawei', 'huawei');
-  validateBooleanVendorChannel(props.vendorChannels, 'fcm', 'fcm');
+  validateVendorChannels(props.vendorChannels);
 }
 
 /**

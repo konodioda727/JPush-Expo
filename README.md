@@ -103,6 +103,13 @@ npx expo prebuild
 npx expo prebuild -p android
 ```
 
+如果你修改了 `app.config.ts` / `app.json` 中的插件参数，需要重新执行一次 `prebuild`，让最新配置重新落到原生工程。已经生成过原生目录时，建议按平台增量刷新；如果怀疑宿主工程里有历史残留，再使用 `--clean` 重新生成。
+
+```bash
+npx expo prebuild -p android --clean
+npx expo prebuild -p ios --clean
+```
+
 ## 推荐配置
 
 ```ts
@@ -162,8 +169,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
 - `appKey`、`channel`、`packageName` 仍然是插件必填项
 - iOS 初始化参数会写入 `Info.plist`，不再直接拼进 `AppDelegate.swift`
-- Android `manifestPlaceholders` 优先读取环境变量或 `gradle.properties`
-- `vendorChannels` 决定要注入哪些厂商 SDK 与占位符，厂商密钥本身建议交给环境变量
+- Android `manifestPlaceholders` 优先读取环境变量或 `gradle.properties`，缺失时会回退到插件配置里的 `appKey` / `channel` / `packageName`
+- `vendorChannels` 决定要注入哪些厂商 SDK 与占位符；若声明某个厂商通道，就必须提供该厂商要求的必填字段
+- 厂商密钥仍然建议交给环境变量，避免把敏感信息直接提交到仓库
 
 ## 环境变量与厂商通道
 
@@ -171,8 +179,8 @@ Android 端的 `manifestPlaceholders` 读取优先级如下：
 
 1. `System.getenv("...")`
 2. `project.findProperty("...")`
-3. 插件收到的默认值，仅 `JPUSH_PKGNAME`
-4. 空字符串，其余字段
+3. 插件收到的配置值：`JPUSH_PKGNAME`、`JPUSH_APPKEY`、`JPUSH_CHANNEL`
+4. 空字符串，其余未提供默认值的字段
 
 ### 可用环境变量
 
@@ -262,10 +270,16 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 ```gradle
 manifestPlaceholders = [
     JPUSH_PKGNAME: System.getenv("JPUSH_PKGNAME") ?: (project.findProperty("JPUSH_PKGNAME") ?: "com.your.app"),
-    JPUSH_APPKEY: System.getenv("JPUSH_APP_KEY") ?: (project.findProperty("JPUSH_APP_KEY") ?: ""),
-    JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: "")
+    JPUSH_APPKEY: System.getenv("JPUSH_APP_KEY") ?: (project.findProperty("JPUSH_APP_KEY") ?: "your-jpush-app-key"),
+    JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: "developer-default")
 ]
 ```
+
+也就是说：
+
+- 对最终消费方，插件配置本身已经足够让 `prebuild` 产出可用的 Android 默认值
+- 对 CI / EAS / 多环境发布，依然推荐通过环境变量或 `gradle.properties` 在构建时覆盖这些值
+- 厂商通道密钥如果需要按环境切换，也应沿用同样的覆盖策略
 
 ## 常见问题
 
@@ -284,6 +298,14 @@ manifestPlaceholders = [
 ### 直接改 `node_modules/mx-jpush-expo` 可以吗？
 
 不建议。重装依赖后会丢失，正式方式建议使用 `pnpm patch mx-jpush-expo` 或维护自己的 fork。
+
+### 插件发布后，消费方实际会拿到什么？
+
+npm 包入口是根目录的 `app.plugin.js`，它会加载发布产物 `plugin/build`。这意味着：
+
+- 仓库开发者在发布新版本前，需要先执行 `npm run build`
+- `package.json` 的 `files` 已包含 `app.plugin.js` 与 `plugin/build`，消费方不会直接运行 `plugin/src` 中的 TypeScript 源码
+- 如果你维护的是 fork 或 patch 包，发布前请先确认编译产物已同步更新，否则消费项目仍会执行旧逻辑
 
 ## 开发与测试
 
