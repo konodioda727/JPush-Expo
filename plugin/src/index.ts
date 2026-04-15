@@ -5,7 +5,7 @@
  * 支持 Expo SDK 53+ 和 React Native 0.79.5+
  * 
  * @author MuxiStudio
- * @version 1.2.4
+ * @version 1.2.5
  * 
  * 参考文档：
  * - JPush 集成 Expo: https://juejin.cn/post/7423235127716659239
@@ -80,4 +80,4 @@ const withJPush: ConfigPlugin<JPushPluginProps> = (config, props) => {
 /**
  * 导出插件（使用 createRunOncePlugin 确保插件只运行一次）
  */
-export default createRunOncePlugin(withJPush, 'mx-jpush-expo', '1.2.4');
+export default createRunOncePlugin(withJPush, 'mx-jpush-expo', '1.2.5');

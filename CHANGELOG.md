@@ -2,7 +2,7 @@
 
 历史版本更新从 README 中拆出，便于首页专注接入说明与使用导航。
 
-## Unreleased
+## v1.2.5 (2026-04-15)
 
 - Android `manifestPlaceholders` 改为在宿主现有配置后追加，保留非冲突的已有键
 - Android `app/build.gradle` 注入不再依赖 `versionName` 文本锚点
