@@ -84,7 +84,7 @@ npm run lint
 - `utils.test.ts`：生成区段与源码定位 helper 的幂等/回收测试
 - `androidTransforms.test.ts`：Android 纯转换函数与 vendor 开关回收测试
 - `iosTransforms.test.ts`：`Info.plist`、`AppDelegate`、Bridging Header 的纯转换测试
-- `nativeAndroidMods.test.ts` / `nativeIos*.test.ts`：fixture 项目上的原生回归测试
+- `nativeAndroidMods.test.ts` / `nativeIos*.test.ts`：fixture 项目上的原生回归测试，覆盖真实 `compileModsAsync` 路径
 
 ### 4. 清理
 
@@ -249,18 +249,27 @@ describe('withMyPlugin', () => {
 这种方式的价值在于：
 
 - 能覆盖正则锚点与模板兼容性
+- 能覆盖宿主已有 `manifestPlaceholders`、缺少 `versionName`、非字面量 `versionName` 等真实 Gradle 边界场景
 - 能验证重复执行时的幂等行为
 - 比只检查 helper 返回值更接近真实 `expo prebuild`
 
 ## 发布流程
 
-### 1. 更新版本
+发布由独立 release PR 负责，不在发布机器上额外执行 `npm version patch`。推荐流程如下：
 
 ```bash
-npm version patch  # 1.0.2 -> 1.0.3
-npm version minor  # 1.0.2 -> 1.1.0
-npm version major  # 1.0.2 -> 2.0.0
+git switch main
+git pull --ff-only
 ```
+
+### 1. 准备 release PR
+
+- 先通过拆分 commit / 堆叠 PR 合入功能改动
+- 在 release PR 中统一更新：
+  - `package.json`
+  - `plugin/src/index.ts`
+  - `app.plugin.js`
+  - `CHANGELOG.md`
 
 ### 2. 构建
 
@@ -275,10 +284,25 @@ npm test -- --runInBand
 npm run lint
 ```
 
-### 4. 发布
+### 4. 检查发布包
+
+```bash
+npm pack
+```
+
+### 5. 发布
 
 ```bash
 npm publish
+```
+
+### 6. 打 tag
+
+只有 `npm publish` 成功后，才在同一提交上补 tag：
+
+```bash
+git tag v1.2.5
+git push origin v1.2.5
 ```
 
 ## 常见问题

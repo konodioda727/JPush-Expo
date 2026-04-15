@@ -2,6 +2,14 @@
 
 历史版本更新从 README 中拆出，便于首页专注接入说明与使用导航。
 
+## Unreleased
+
+- Android `manifestPlaceholders` 改为在宿主现有配置后追加，保留非冲突的已有键
+- Android `app/build.gradle` 注入不再依赖 `versionName` 文本锚点
+- iOS `AppDelegate.swift` 中的 JPush 调试日志仅在 `DEBUG` 构建启用
+- 移除插件内部的历史全局配置 helper，并对齐 `createRunOncePlugin` 版本元数据
+- 更新 prebuild、测试与本地发布流程文档
+
 ## v1.2.4 (2026-03-27)
 
 - 修复 `app.config.js` 配置不生效的问题

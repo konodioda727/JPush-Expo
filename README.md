@@ -172,6 +172,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 - Android `manifestPlaceholders` 优先读取环境变量或 `gradle.properties`，缺失时会回退到插件配置里的 `appKey` / `channel` / `packageName`
 - 如果宿主已经定义了 `manifestPlaceholders`，插件会通过 `manifestPlaceholders += [...]` 追加 JPush 字段
   非 JPush 的宿主键会被保留；如果宿主和插件都声明了同名的 `JPUSH_*` 键，后追加的 JPush 默认值会生效
+- Android `app/build.gradle` 注入不再依赖 `versionName` 所在行；缺少 `versionName` 或使用 Gradle 变量时也能稳定 `prebuild`
 - `vendorChannels` 决定要注入哪些厂商 SDK 与占位符；若声明某个厂商通道，就必须提供该厂商要求的必填字段
 - 厂商密钥仍然建议交给环境变量，避免把敏感信息直接提交到仓库
 
@@ -350,10 +351,8 @@ mx-jpush-expo/
 │   │   │   └── gradleProperties.ts
 │   │   └── utils/
 │   │       ├── codeValidator.ts
-│   │       ├── config.ts
 │   │       ├── generateCode.ts
-│   │       ├── sourceCode.ts
-│   │       └── vendorChannels.ts
+│   │       └── sourceCode.ts
 │   ├── __tests__/
 │   │   ├── fixtures/
 │   │   ├── iosFixture.ts
@@ -375,6 +374,8 @@ mx-jpush-expo/
 - iOS `UIBackgroundModes` 改为合并写入，不再覆盖宿主已有后台模式
 - Swift `Bridging Header` 支持优先复用、缺失自动创建，并保持幂等
 - 补齐 iOS / Android fixture-based 原生回归测试
+- Android `manifestPlaceholders` 改为在宿主现有配置后追加，不再依赖 `versionName` 文本锚点
+- iOS `AppDelegate.swift` 中的 JPush 调试日志只在 `DEBUG` 构建启用
 - 加入 ESLint 与 CI 质量闭环
 - 对齐 Expo SDK 53 的版本声明与仓库开发基线
 - Android 敏感参数支持环境变量 / `gradle.properties` 读取，不再明文写入构建脚本
