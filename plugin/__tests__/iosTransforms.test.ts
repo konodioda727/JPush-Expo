@@ -94,6 +94,8 @@ describe('iOS transforms', () => {
 
     expect(transformed).toContain('import UserNotifications');
     expect(transformed).toContain('JPUSHService.setup(withOption: launchOptions');
+    expect(transformed).toContain('#if DEBUG');
+    expect(transformed).toContain('JPUSHService.setDebugMode()');
     expect(transformed).toContain('didRegisterForRemoteNotificationsWithDeviceToken');
     expect(transformed).toContain('extension AppDelegate: JPUSHRegisterDelegate');
     expect(repeated).toBe(transformed);

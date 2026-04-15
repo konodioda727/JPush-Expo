@@ -117,8 +117,10 @@ const getJPushInitialization = (): string => {
     }
     JPUSHService.register(forRemoteNotificationConfig: entity, delegate: self)
 
+    #if DEBUG
     // 开启调试模式
     JPUSHService.setDebugMode()
+    #endif
 
     let appKey = Bundle.main.object(forInfoDictionaryKey: "JPUSH_APPKEY") as? String ?? ""
     let channel = Bundle.main.object(forInfoDictionaryKey: "JPUSH_CHANNEL") as? String ?? ""
@@ -148,12 +150,14 @@ const getRemoteNotificationMethods = (): string => {
   return `
   public override func application(_ application: UIApplication,
                                   didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    #if DEBUG
     print("🎉 成功获取 deviceToken: \\(deviceToken)")
 
     // 将 deviceToken 转换为字符串格式
     let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
     let token = tokenParts.joined()
     print("📱 deviceToken (String): \\(token)")
+    #endif
 
     // 注册到 JPush
     JPUSHService.registerDeviceToken(deviceToken)
@@ -163,7 +167,9 @@ const getRemoteNotificationMethods = (): string => {
 
   public override func application(_ application: UIApplication,
                                   didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    #if DEBUG
     print("❌ 注册推送通知失败: \\(error.localizedDescription)")
+    #endif
     return super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
   }`;
 };
@@ -183,7 +189,9 @@ const getJPushDelegateExtension = (): string => {
     if notification.request.trigger is UNPushNotificationTrigger {
       // 处理远程推送
       JPUSHService.handleRemoteNotification(userInfo)
+      #if DEBUG
       print("iOS10 收到远程通知: \\(userInfo)")
+      #endif
       NotificationCenter.default.post(
         name: NSNotification.Name("J_APNS_NOTIFICATION_ARRIVED_EVENT"),
         object: userInfo
@@ -205,7 +213,9 @@ const getJPushDelegateExtension = (): string => {
     if response.notification.request.trigger is UNPushNotificationTrigger {
       // 处理远程推送点击
       JPUSHService.handleRemoteNotification(userInfo)
+      #if DEBUG
       print("iOS10 用户点击了远程通知: \\(userInfo)")
+      #endif
       NotificationCenter.default.post(
         name: NSNotification.Name("J_APNS_NOTIFICATION_OPENED_EVENT"),
         object: userInfo
@@ -220,7 +230,9 @@ const getJPushDelegateExtension = (): string => {
     let userInfo = notification.userInfo
     guard let _ = userInfo else { return }
 
+    #if DEBUG
     print("收到自定义消息: \\(String(describing: userInfo))")
+    #endif
     NotificationCenter.default.post(
       name: NSNotification.Name("J_CUSTOM_NOTIFICATION_EVENT"),
       object: userInfo
@@ -230,13 +242,17 @@ const getJPushDelegateExtension = (): string => {
   // 通知设置
   @objc public func jpushNotificationCenter(_ center: UNUserNotificationCenter,
                                            openSettingsFor notification: UNNotification?) {
+    #if DEBUG
     print("打开通知设置")
+    #endif
   }
 
   // 授权状态
   @objc public func jpushNotificationAuthorization(_ status: JPAuthorizationStatus,
                                                    withInfo info: [AnyHashable : Any]?) {
+    #if DEBUG
     print("receive notification authorization status:\\(status.rawValue), info:\\(String(describing: info))")
+    #endif
   }
 }`;
 };

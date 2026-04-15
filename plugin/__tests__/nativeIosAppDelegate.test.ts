@@ -27,6 +27,8 @@ describe('native iOS AppDelegate mod', () => {
     expect(appDelegate).toContain(
       'JPUSHService.register(forRemoteNotificationConfig: entity, delegate: self)'
     );
+    expect(appDelegate).toContain('#if DEBUG');
+    expect(appDelegate).toContain('JPUSHService.setDebugMode()');
     expect(appDelegate).toContain('JPUSHService.setup(withOption: launchOptions,');
     expect(appDelegate).toContain(
       'didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data'
@@ -66,6 +68,7 @@ describe('native iOS AppDelegate mod', () => {
         'JPUSHService.register(forRemoteNotificationConfig: entity, delegate: self)'
       )
     ).toBe(1);
+    expect(countOccurrences(twiceCompiled, '#if DEBUG')).toBeGreaterThan(0);
     expect(
       countOccurrences(
         twiceCompiled,
