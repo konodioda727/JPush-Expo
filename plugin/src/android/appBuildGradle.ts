@@ -6,38 +6,123 @@
 import { ExpoConfig } from 'expo/config';
 import { withAppBuildGradle } from 'expo/config-plugins';
 import { ResolvedJPushPluginProps, VendorChannelConfig } from '../types';
-import { mergeContents, removeGeneratedContents, syncGeneratedContentsAtLine, syncGeneratedContentsAtEnd } from '../utils/generateCode';
-import { Validator } from '../utils/codeValidator';
-import { ensureNestedBlock, ensureTopLevelBlock, findLineIndex } from '../utils/sourceCode';
-
-/**
- * 生成 NDK abiFilters 配置
- */
-const getNdkConfig = (): string => {
-  return `ndk {
-                //选择要添加的对应 cpu 类型的 .so 库。
-                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
-            }`;
-};
+import {
+  removeGeneratedContents,
+  replaceGeneratedContentsAtLine,
+  syncGeneratedContentsAtEnd,
+} from '../utils/generateCode';
+import { getConfig } from '../utils/config';
+import {
+  ensureNestedBlock,
+  ensureTopLevelBlock,
+  findBlockRange,
+  findLineIndex,
+  findNestedBlockRange,
+  getLineIndent,
+} from '../utils/sourceCode';
 
 const LEGACY_DEFAULT_CONFIG_TAGS = [
+  'jpush-default-config',
   'jpush-ndk-config',
   'jpush-manifest-placeholders',
 ];
 const LEGACY_DEPENDENCY_TAGS = ['jpush-libs-filetree'];
 
-/**
- * 生成 defaultConfig 中的 JPush 配置
- */
+type ResolvedAndroidBuildGradleConfig = {
+  appKey: string;
+  channel: string;
+  packageName: string;
+  vendorChannels?: VendorChannelConfig;
+};
+
+type AndroidBuildGradleConfigInput = {
+  packageName?: string;
+  appKey?: string;
+  channel?: string;
+  vendorChannels?: VendorChannelConfig;
+};
+
 const gradleEnv = (key: string, fallback = '""'): string =>
   `System.getenv("${key}") ?: (project.findProperty("${key}") ?: ${fallback})`;
 
-const getManifestPlaceholders = (
+function removeLegacyGeneratedSections(contents: string, tags: string[]): string {
+  return tags.reduce((currentContents, tag) => {
+    return removeGeneratedContents(currentContents, tag) ?? currentContents;
+  }, contents);
+}
+
+function getResolvedConfig({
+  packageName,
+  appKey,
+  channel,
+  vendorChannels,
+}: AndroidBuildGradleConfigInput): ResolvedAndroidBuildGradleConfig {
+  const fallbackConfig = getConfig();
+
+  return {
+    appKey: appKey ?? fallbackConfig?.appKey ?? '',
+    channel: channel ?? fallbackConfig?.channel ?? '',
+    packageName: packageName ?? fallbackConfig?.packageName ?? '',
+    vendorChannels: vendorChannels ?? fallbackConfig?.vendorChannels,
+  };
+}
+
+function getBlockRangeOrThrow(src: string, pattern: RegExp, errorMessage: string) {
+  const range = findBlockRange(src, pattern);
+
+  if (!range) {
+    throw new Error(errorMessage);
+  }
+
+  return range;
+}
+
+function getDefaultConfigRange(src: string) {
+  return getBlockRangeOrThrow(
+    src,
+    /^\s*defaultConfig\s*\{/,
+    '[MX_JPush_Expo] 未找到 defaultConfig 配置块'
+  );
+}
+
+function getDependenciesLine(src: string): number {
+  const lineIndex = findLineIndex(src, /^\s*dependencies\s*\{/);
+
+  if (lineIndex < 0) {
+    throw new Error('[MX_JPush_Expo] 未找到 dependencies 配置块');
+  }
+
+  return lineIndex;
+}
+
+function getNdkRange(src: string) {
+  const range = findNestedBlockRange(
+    src,
+    /^\s*defaultConfig\s*\{/,
+    /^\s*ndk\s*\{/
+  );
+
+  if (!range) {
+    throw new Error('[MX_JPush_Expo] 未找到 defaultConfig.ndk 配置块');
+  }
+
+  return range;
+}
+
+function getChildIndent(src: string, pattern: RegExp, errorMessage: string): string {
+  const range = getBlockRangeOrThrow(src, pattern, errorMessage);
+  const lines = src.split('\n');
+
+  return `${getLineIndent(lines[range.startLine])}    `;
+}
+
+function getManifestPlaceholders(
   packageName: string,
   appKey: string,
   channel: string,
-  vendorChannels?: VendorChannelConfig
-): string => {
+  vendorChannels: VendorChannelConfig | undefined,
+  indent: string
+): string {
   const placeholders: string[] = [
     `JPUSH_PKGNAME: ${gradleEnv('JPUSH_PKGNAME', `"${packageName}"`)}`,
     `JPUSH_APPKEY: ${gradleEnv('JPUSH_APP_KEY', `"${appKey}"`)}`,
@@ -73,20 +158,38 @@ const getManifestPlaceholders = (
     placeholders.push(`NIO_APPID: ${gradleEnv('JPUSH_NIO_APP_ID')}`);
   }
 
-  return `manifestPlaceholders = [
-                ${placeholders.join(',\n                ')}
-            ]`;
-};
+  const valueIndent = `${indent}    `;
 
-/**
- * 生成 JPush SDK 依赖代码
- */
-const getJPushDependencies = (
-  vendorChannels?: VendorChannelConfig
-): string => {
+  return [
+    // Append after any host map so unrelated placeholders stay intact while
+    // JPUSH_* defaults can still take precedence when the same key is reused.
+    `${indent}manifestPlaceholders += [`,
+    placeholders
+      .map((placeholder, index) => {
+        const separator = index === placeholders.length - 1 ? '' : ',';
+        return `${valueIndent}${placeholder}${separator}`;
+      })
+      .join('\n'),
+    `${indent}]`,
+  ].join('\n');
+}
+
+function getNdkAbiFilters(indent: string): string {
+  return [
+    `${indent}// 选择要添加的对应 cpu 类型的 .so 库。`,
+    `${indent}abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'`,
+  ].join('\n');
+}
+
+function getJPushDependencies(
+  vendorChannels: VendorChannelConfig | undefined,
+  indent: string
+): string {
   const isHuaweiEnabled = vendorChannels?.huawei?.enabled === true;
   const isFcmEnabled = vendorChannels?.fcm?.enabled === true;
   const dependencies: string[] = [
+    `implementation fileTree(include: ['*.jar','*.aar'], dir: 'libs')`,
+    ``,
     `// JPush React Native 桥接（已包含 JPush 核心 SDK）`,
     `implementation project(':jpush-react-native')`,
     `implementation project(':jcore-react-native')`,
@@ -104,8 +207,9 @@ const getJPushDependencies = (
           vendorChannels.honor ||
           vendorChannels.nio
       );
+
     if (hasVendorChannels) {
-      dependencies.push(``, `// 厂商通道 SDK（JPush 5.9.0）`);
+      dependencies.push('', `// 厂商通道 SDK（JPush 5.9.0）`);
     }
 
     if (isHuaweiEnabled) {
@@ -126,24 +230,15 @@ const getJPushDependencies = (
     }
 
     if (vendorChannels.meizu) {
-      dependencies.push(
-        `// 魅族厂商`,
-        `implementation 'cn.jiguang.sdk.plugin:meizu:5.9.0'`
-      );
+      dependencies.push(`// 魅族厂商`, `implementation 'cn.jiguang.sdk.plugin:meizu:5.9.0'`);
     }
 
     if (vendorChannels.vivo) {
-      dependencies.push(
-        `// VIVO 厂商`,
-        `implementation 'cn.jiguang.sdk.plugin:vivo:5.9.0'`
-      );
+      dependencies.push(`// VIVO 厂商`, `implementation 'cn.jiguang.sdk.plugin:vivo:5.9.0'`);
     }
 
     if (vendorChannels.xiaomi) {
-      dependencies.push(
-        `// 小米厂商`,
-        `implementation 'cn.jiguang.sdk.plugin:xiaomi:5.9.0'`
-      );
+      dependencies.push(`// 小米厂商`, `implementation 'cn.jiguang.sdk.plugin:xiaomi:5.9.0'`);
     }
 
     if (vendorChannels.oppo) {
@@ -157,27 +252,20 @@ const getJPushDependencies = (
     }
 
     if (vendorChannels.honor) {
-      dependencies.push(
-        `// 荣耀厂商`,
-        `implementation 'cn.jiguang.sdk.plugin:honor:5.9.0'`
-      );
+      dependencies.push(`// 荣耀厂商`, `implementation 'cn.jiguang.sdk.plugin:honor:5.9.0'`);
     }
 
     if (vendorChannels.nio) {
-      dependencies.push(
-        `// 蔚来厂商`,
-        `implementation 'cn.jiguang.sdk.plugin:nio:5.9.0'`
-      );
+      dependencies.push(`// 蔚来厂商`, `implementation 'cn.jiguang.sdk.plugin:nio:5.9.0'`);
     }
   }
 
-  return dependencies.join('\n    ');
-};
+  return dependencies
+    .map((dependency) => (dependency ? `${indent}${dependency}` : dependency))
+    .join('\n');
+}
 
-/**
- * 生成 apply plugin 语句
- */
-const getApplyPlugins = (vendorChannels?: VendorChannelConfig): string => {
+function getApplyPlugins(vendorChannels?: VendorChannelConfig): string {
   const isHuaweiEnabled = vendorChannels?.huawei?.enabled === true;
   const isFcmEnabled = vendorChannels?.fcm?.enabled === true;
   const plugins: string[] = [];
@@ -190,19 +278,8 @@ const getApplyPlugins = (vendorChannels?: VendorChannelConfig): string => {
     plugins.push(`apply plugin: 'com.huawei.agconnect'`);
   }
 
-  return plugins.length > 0 ? plugins.join('\n') : '';
-};
-
-function removeLegacyGeneratedSections(contents: string, tags: string[]): string {
-  return tags.reduce((currentContents, tag) => {
-    return removeGeneratedContents(currentContents, tag) ?? currentContents;
-  }, contents);
+  return plugins.join('\n');
 }
-
-/**
- * 生成 defaultConfig 代码片段
- */
-
 
 export function applyAndroidAppBuildGradle(
   contents: string,
@@ -211,42 +288,68 @@ export function applyAndroidAppBuildGradle(
   appKey?: string,
   channel?: string
 ): string {
+  const resolvedConfig = getResolvedConfig({
+    packageName,
+    appKey,
+    channel,
+    vendorChannels,
+  });
+
   let nextContents = removeLegacyGeneratedSections(contents, LEGACY_DEFAULT_CONFIG_TAGS);
   nextContents = ensureNestedBlock(nextContents, /^\s*android\s*\{/, 'defaultConfig');
+  nextContents = ensureNestedBlock(nextContents, /^\s*defaultConfig\s*\{/, 'ndk');
   nextContents = ensureTopLevelBlock(nextContents, 'dependencies');
+  nextContents = removeLegacyGeneratedSections(nextContents, LEGACY_DEPENDENCY_TAGS);
 
-  const defaultConfigLine = findLineIndex(nextContents, /^\s*defaultConfig\s*\{/);
-  if (defaultConfigLine < 0) {
-    throw new Error('[MX_JPush_Expo] 未找到 defaultConfig 配置块');
-  }
-
-  nextContents = syncGeneratedContentsAtLine({
+  const ndkIndent = getChildIndent(
+    nextContents,
+    /^\s*ndk\s*\{/,
+    '[MX_JPush_Expo] 未找到 defaultConfig.ndk 配置块'
+  );
+  nextContents = replaceGeneratedContentsAtLine({
     src: nextContents,
-    newSrc: `${getNdkConfig()}\n${getManifestPlaceholders(packageName || '', appKey || '', channel || '', vendorChannels)}`,
-    tag: 'jpush-default-config',
-    lineIndex: defaultConfigLine,
-    offset: 1,
+    newSrc: getNdkAbiFilters(ndkIndent),
+    tag: 'jpush-ndk-abi-filters',
+    getLineIndex: (src) => getNdkRange(src).endLine,
+    offset: 0,
     comment: '//',
   }).contents;
 
-  const dependenciesLine = findLineIndex(nextContents, /^\s*dependencies\s*\{/);
-  if (dependenciesLine < 0) {
-    throw new Error('[MX_JPush_Expo] 未找到 dependencies 配置块');
-  }
-
-  nextContents = removeLegacyGeneratedSections(nextContents, LEGACY_DEPENDENCY_TAGS);
-  nextContents = syncGeneratedContentsAtLine({
+  const defaultConfigIndent = getChildIndent(
+    nextContents,
+    /^\s*defaultConfig\s*\{/,
+    '[MX_JPush_Expo] 未找到 defaultConfig 配置块'
+  );
+  nextContents = replaceGeneratedContentsAtLine({
     src: nextContents,
-    newSrc: getJPushDependencies(vendorChannels),
+    newSrc: getManifestPlaceholders(
+      resolvedConfig.packageName,
+      resolvedConfig.appKey,
+      resolvedConfig.channel,
+      resolvedConfig.vendorChannels,
+      defaultConfigIndent
+    ),
+    tag: 'jpush-manifest-placeholders',
+    getLineIndex: (src) => getDefaultConfigRange(src).endLine,
+    offset: 0,
+    comment: '//',
+  }).contents;
+
+  const dependenciesIndent = `${getLineIndent(
+    nextContents.split('\n')[getDependenciesLine(nextContents)]
+  )}    `;
+  nextContents = replaceGeneratedContentsAtLine({
+    src: nextContents,
+    newSrc: getJPushDependencies(resolvedConfig.vendorChannels, dependenciesIndent),
     tag: 'jpush-dependencies',
-    lineIndex: dependenciesLine,
+    getLineIndex: getDependenciesLine,
     offset: 1,
     comment: '//',
   }).contents;
 
   nextContents = syncGeneratedContentsAtEnd({
     src: nextContents,
-    newSrc: getApplyPlugins(vendorChannels),
+    newSrc: getApplyPlugins(resolvedConfig.vendorChannels),
     tag: 'jpush-apply-plugins',
     comment: '//',
   }).contents;
@@ -259,76 +362,20 @@ export function applyAndroidAppBuildGradle(
  */
 export function withAndroidAppBuildGradle(
   config: ExpoConfig,
-  props: Pick<ResolvedJPushPluginProps, 'packageName' | 'appKey' | 'channel' | 'vendorChannels'>
+  props: Pick<
+    ResolvedJPushPluginProps,
+    'packageName' | 'appKey' | 'channel' | 'vendorChannels'
+  >
 ): ExpoConfig {
   return withAppBuildGradle(config, (nextConfig) => {
-    const validator = new Validator(nextConfig.modResults.contents);
-
-    validator.register('abiFilters', (src) => {
-      console.log('\n[MX_JPush_Expo] 配置 build.gradle NDK abiFilters ...');
-
-      return mergeContents({
-        src,
-        newSrc: getNdkConfig(),
-        tag: 'jpush-ndk-config',
-        anchor: /versionName\s+["'][\d.]+["']/,
-        offset: 1,
-        comment: '//',
-      });
-    });
-
-    validator.register('JPUSH_APPKEY', (src) => {
-      console.log(
-        '\n[MX_JPush_Expo] 配置 build.gradle manifestPlaceholders ...'
-      );
-
-      return mergeContents({
-        src,
-        newSrc: getManifestPlaceholders(
-          props.packageName,
-          props.appKey,
-          props.channel,
-          props.vendorChannels
-        ),
-        tag: 'jpush-manifest-placeholders',
-        anchor: /versionName\s+["'][\d.]+["']/,
-        offset: 1,
-        comment: '//',
-      });
-    });
-
-    validator.register('jpush-dependencies', (src) => {
-      console.log('\n[MX_JPush_Expo] 配置 build.gradle JPush 依赖 ...');
-
-      return mergeContents({
-        src,
-        newSrc: getJPushDependencies(props.vendorChannels),
-        tag: 'jpush-dependencies',
-        anchor: /dependencies\s*\{/,
-        offset: 1,
-        comment: '//',
-      });
-    });
-
-    if (props.vendorChannels) {
-      const applyPlugins = getApplyPlugins(props.vendorChannels);
-      if (applyPlugins) {
-        validator.register('jpush-apply-plugins', (src) => {
-          console.log('\n[MX_JPush_Expo] 配置 build.gradle apply plugins ...');
-
-          return mergeContents({
-            src,
-            newSrc: applyPlugins,
-            tag: 'jpush-apply-plugins',
-            anchor: /^$/,
-            offset: 0,
-            comment: '//',
-          });
-        });
-      }
-    }
-
-    nextConfig.modResults.contents = validator.invoke();
+    console.log('\n[MX_JPush_Expo] 配置 Android app/build.gradle ...');
+    nextConfig.modResults.contents = applyAndroidAppBuildGradle(
+      nextConfig.modResults.contents,
+      props.vendorChannels,
+      props.packageName,
+      props.appKey,
+      props.channel
+    );
 
     return nextConfig;
   });

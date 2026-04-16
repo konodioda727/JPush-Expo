@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { compileModsAsync } from 'expo/config-plugins';
 import withJPush from '../src';
 import {
@@ -8,6 +9,7 @@ import {
   SETTINGS_GRADLE_PATH,
   compileAndroidMods,
   createProjectRoot,
+  getFixturePath,
   readFixtureFile,
   registerAndroidFixtureLifecycleHooks,
 } from './androidFixture';
@@ -272,6 +274,71 @@ describe('native Android config mods', () => {
     );
     expect(appBuildGradle).toContain(
       'JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: "non-eas-channel")'
+    );
+  });
+
+  it('merges JPush manifestPlaceholders after existing host placeholders', async () => {
+    const projectRoot = createProjectRoot();
+    const buildGradlePath = getFixturePath(projectRoot, APP_BUILD_GRADLE_PATH);
+    const hostBuildGradle = fs.readFileSync(buildGradlePath, 'utf8').replace(
+      'versionName "1.0.0"',
+      'versionName "1.0.0"\n        manifestPlaceholders = [existingKey: "existing", JPUSH_CHANNEL: "host-channel"]'
+    );
+
+    fs.writeFileSync(buildGradlePath, hostBuildGradle);
+
+    await compileAndroidMods(projectRoot, {
+      appKey: 'merged-app-key',
+      channel: 'merged-channel',
+      packageName: 'com.example.merged',
+    });
+
+    const appBuildGradle = readFixtureFile(projectRoot, APP_BUILD_GRADLE_PATH);
+
+    expect(appBuildGradle).toContain(
+      'manifestPlaceholders = [existingKey: "existing", JPUSH_CHANNEL: "host-channel"]'
+    );
+    expect(appBuildGradle).toContain('manifestPlaceholders += [');
+    expect(appBuildGradle).toContain(
+      'JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: "merged-channel")'
+    );
+    expect(countOccurrences(appBuildGradle, 'manifestPlaceholders = [')).toBe(1);
+  });
+
+  it.each([
+    {
+      name: 'without versionName',
+      transform: (contents: string) =>
+        contents.replace(/\n\s*versionName\s+"1\.0\.0"/, ''),
+    },
+    {
+      name: 'with a non-literal versionName',
+      transform: (contents: string) =>
+        contents.replace(
+          'versionName "1.0.0"',
+          'def appVersionName = providers.gradleProperty("appVersionName").orElse("1.0.0").get()\n        versionName appVersionName'
+        ),
+    },
+  ])('prebuilds app/build.gradle %s', async ({ transform }) => {
+    const projectRoot = createProjectRoot();
+    const buildGradlePath = getFixturePath(projectRoot, APP_BUILD_GRADLE_PATH);
+    const hostBuildGradle = transform(fs.readFileSync(buildGradlePath, 'utf8'));
+
+    fs.writeFileSync(buildGradlePath, hostBuildGradle);
+
+    await expect(
+      compileAndroidMods(projectRoot, {
+        appKey: 'edge-app-key',
+        channel: 'edge-channel',
+        packageName: 'com.example.edge',
+      })
+    ).resolves.toBeUndefined();
+
+    const appBuildGradle = readFixtureFile(projectRoot, APP_BUILD_GRADLE_PATH);
+
+    expect(appBuildGradle).toContain('manifestPlaceholders += [');
+    expect(appBuildGradle).toContain(
+      'JPUSH_APPKEY: System.getenv("JPUSH_APP_KEY") ?: (project.findProperty("JPUSH_APP_KEY") ?: "edge-app-key")'
     );
   });
 

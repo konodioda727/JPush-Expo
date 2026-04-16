@@ -29,7 +29,7 @@ describe('Android transforms', () => {
     const repeated = applyAndroidAppBuildGradle(transformed, vendorChannels);
 
     expect(transformed).toContain('defaultConfig {');
-    expect(transformed).toContain('manifestPlaceholders = [');
+    expect(transformed).toContain('manifestPlaceholders += [');
     expect(transformed).toContain(`implementation 'cn.jiguang.sdk.plugin:huawei:5.9.0'`);
     expect(transformed).toContain(`implementation 'cn.jiguang.sdk.plugin:fcm:5.9.0'`);
     expect(transformed).toContain(`implementation 'cn.jiguang.sdk.plugin:xiaomi:5.9.0'`);
@@ -100,12 +100,13 @@ describe('Android transforms', () => {
     const upgraded = applyAndroidAppBuildGradle(withLegacyFileTree, undefined);
 
     expect(upgraded).not.toContain('@generated begin jpush-ndk-config');
-    expect(upgraded).not.toContain('@generated begin jpush-manifest-placeholders');
     expect(upgraded).not.toContain('@generated begin jpush-libs-filetree');
+    expect(upgraded).not.toContain(`JPUSH_APPKEY: 'legacy'`);
+    expect(upgraded).toContain('manifestPlaceholders += [');
     const matches = upgraded.match(
       /implementation fileTree\(include: \['\*.jar','\*.aar'\], dir: 'libs'\)/g
     );
-    expect(matches?.length || 0).toBeGreaterThanOrEqual(0);
+    expect(matches).toHaveLength(1);
   });
 
   it('should inject and remove project/build.gradle vendor sections', () => {
