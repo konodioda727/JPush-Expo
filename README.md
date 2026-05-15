@@ -65,8 +65,8 @@
 | 项目 | 版本 |
 | --- | --- |
 | Expo SDK | `53+` |
-| 仓库开发基线 | `Expo SDK 53` |
-| React Native | `0.76.9` |
+| 仓库开发基线 | `Expo SDK 55` |
+| React Native | `0.83.6` |
 | Node.js | `>= 18.18.0` |
 | `jpush-react-native` | `3.1.9` |
 | `jcore-react-native` | `2.3.0` |
@@ -377,7 +377,7 @@ mx-jpush-expo/
 - Android `manifestPlaceholders` 改为在宿主现有配置后追加，不再依赖 `versionName` 文本锚点
 - iOS `AppDelegate.swift` 中的 JPush 调试日志只在 `DEBUG` 构建启用
 - 加入 ESLint 与 CI 质量闭环
-- 对齐 Expo SDK 53 的版本声明与仓库开发基线
+- 对齐 Expo SDK 55 的版本声明与仓库开发基线
 - Android 敏感参数支持环境变量 / `gradle.properties` 读取，不再明文写入构建脚本
 - iOS 初始化参数改为从 `Info.plist` 读取，不再直接注入 `AppDelegate.swift`
 

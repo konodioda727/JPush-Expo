@@ -11,7 +11,7 @@
 ## 环境要求
 
 - Node.js >= 18.18.0
-- Expo SDK 53 作为仓库开发基线
+- Expo SDK 55 作为仓库开发基线
 - 推荐 pnpm 10 或 npm 10+
 - TypeScript >= 5.0
 

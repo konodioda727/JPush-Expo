@@ -56,16 +56,29 @@
     "expo": ">=53.0.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/jest": "^29.5.0",
-    "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.57.1",
-    "@typescript-eslint/parser": "^8.57.1",
-    "eslint": "^9.39.4",
-    "globals": "^17.4.0",
-    "expo": "^53.0.27",
-    "jest": "^29.5.0",
-    "ts-jest": "^29.1.0",
-    "typescript": "^5.0.0"
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^25.8.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
+    "eslint": "^10.4.0",
+    "expo": "^55.0.24",
+    "globals": "^17.6.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.9",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "@babel/plugin-transform-modules-systemjs": "7.29.4",
+      "@xmldom/xmldom": "0.8.13",
+      "brace-expansion@^1.1.7": "1.1.13",
+      "brace-expansion@^5.0.0": "5.0.6",
+      "node-forge": "1.4.0",
+      "picomatch@^2.0.4": "2.3.2",
+      "picomatch@^2.3.1": "2.3.2",
+      "picomatch@^4.0.3": "4.0.4",
+      "postcss": "8.5.14"
+    }
   }
 }
