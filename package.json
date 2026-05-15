@@ -53,12 +53,12 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "expo": ">=53.0.0"
+    "expo": ">=55.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/jest": "^29.5.14",
-    "@types/node": "^25.8.0",
+    "@types/node": "^18.19.130",
     "@typescript-eslint/eslint-plugin": "^8.59.3",
     "@typescript-eslint/parser": "^8.59.3",
     "eslint": "^10.4.0",
@@ -72,12 +72,11 @@
     "overrides": {
       "@babel/plugin-transform-modules-systemjs": "7.29.4",
       "@xmldom/xmldom": "0.8.13",
-      "brace-expansion@^1.1.7": "1.1.13",
-      "brace-expansion@^5.0.0": "5.0.6",
+      "brace-expansion@^1": "1.1.13",
+      "brace-expansion@^5": "5.0.6",
       "node-forge": "1.4.0",
-      "picomatch@^2.0.4": "2.3.2",
-      "picomatch@^2.3.1": "2.3.2",
-      "picomatch@^4.0.3": "4.0.4",
+      "picomatch@^2": "2.3.2",
+      "picomatch@^4": "4.0.4",
       "postcss": "8.5.14"
     }
   }

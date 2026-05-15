@@ -11,7 +11,7 @@
     <a href="https://www.npmjs.com/package/mx-jpush-expo"><img alt="npm version" src="https://img.shields.io/npm/v/mx-jpush-expo?logo=npm&label=npm"></a>
     <a href="https://github.com/konodioda727/JPush-Expo/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/konodioda727/JPush-Expo/ci.yml?branch=main&logo=githubactions&label=CI"></a>
     <a href="https://github.com/konodioda727/JPush-Expo/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/konodioda727/JPush-Expo"></a>
-    <img alt="Expo SDK 53+" src="https://img.shields.io/badge/Expo%20SDK-53%2B-000020?logo=expo">
+    <img alt="Expo SDK 55+" src="https://img.shields.io/badge/Expo%20SDK-55%2B-000020?logo=expo">
     <a href="https://nodejs.org/"><img alt="Node.js >=18.18.0" src="https://img.shields.io/badge/Node.js-%3E%3D18.18.0-339933?logo=nodedotjs&logoColor=white"></a>
   </p>
 
@@ -64,7 +64,7 @@
 
 | 项目 | 版本 |
 | --- | --- |
-| Expo SDK | `53+` |
+| Expo SDK | `55+` |
 | 仓库开发基线 | `Expo SDK 55` |
 | React Native | `0.83.6` |
 | Node.js | `>= 18.18.0` |

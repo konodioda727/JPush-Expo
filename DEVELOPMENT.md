@@ -27,6 +27,10 @@ npm install
 pnpm install
 ```
 
+## 依赖维护说明
+
+`package.json` 中的 `pnpm.overrides` 只用于把 Expo / Jest / ESLint 工具链里的传递依赖固定到 `pnpm audit --audit-level moderate` 标记的 patched versions。调整这些覆盖项前，先重新运行 audit，并删除已经不再需要的覆盖。
+
 ## 项目结构
 
 插件采用 TypeScript 开发，遵循 Expo 官方最佳实践：
