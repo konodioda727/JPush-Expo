@@ -11,7 +11,7 @@
 ## 环境要求
 
 - Node.js >= 18.18.0
-- Expo SDK 53 作为仓库开发基线
+- Expo SDK 55 作为仓库开发基线
 - 推荐 pnpm 10 或 npm 10+
 - TypeScript >= 5.0
 
@@ -26,6 +26,10 @@ npm install
 ```bash
 pnpm install
 ```
+
+## 依赖维护说明
+
+`package.json` 中的 `pnpm.overrides` 只用于把 Expo / Jest / ESLint 工具链里的传递依赖固定到 `pnpm audit --audit-level moderate` 标记的 patched versions。调整这些覆盖项前，先重新运行 audit，并删除已经不再需要的覆盖。
 
 ## 项目结构
 

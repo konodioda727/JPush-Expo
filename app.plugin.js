@@ -2,7 +2,7 @@
  * Expo Config Plugin for JPush Integration
  * 
  * 极光推送 Expo 集成插件 - 主入口文件
- * 支持 Expo SDK 53+ 和 React Native 0.79.5+
+ * 支持 Expo SDK 55+ 和 React Native 0.83.6+
  * 
  * @author MuxiStudio
  * @version 1.2.5
