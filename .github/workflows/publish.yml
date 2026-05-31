@@ -25,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20.19.0
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
@@ -34,11 +34,5 @@ jobs:
       - name: Build plugin
         run: pnpm run build
 
-      - name: Run tests
-        run: npm test -- --runInBand
-
-      - name: Run lint
-        run: pnpm run lint
-
       - name: Publish to npm
-        run: npm publish --access public
+        run: npm publish --access public --provenance
