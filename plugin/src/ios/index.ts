@@ -7,6 +7,7 @@ import { ExpoConfig } from 'expo/config';
 import { withIosInfoPlist } from './infoPlist';
 import { withIosAppDelegate } from './appDelegate';
 import { withIosBridgingHeader } from './bridgingHeader';
+import { withIosEntitlements } from './entitlements';
 import { ResolvedJPushPluginProps } from '../types';
 
 /**
@@ -20,6 +21,7 @@ export function withIOSConfig(
   props: ResolvedJPushPluginProps
 ): ExpoConfig {
   config = withIosInfoPlist(config, props);
+  config = withIosEntitlements(config, props);
   config = withIosAppDelegate(config);
   config = withIosBridgingHeader(config);
 

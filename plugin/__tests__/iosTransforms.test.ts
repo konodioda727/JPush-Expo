@@ -8,6 +8,7 @@ import {
   syncBridgingHeaderFile,
   upsertBridgingHeaderImports,
 } from '../src/ios/bridgingHeader';
+import { applyIosEntitlements } from '../src/ios/entitlements';
 import { applyIosInfoPlist, mergeBackgroundModes } from '../src/ios/infoPlist';
 
 const readFixture = (fixturePath: string): string =>
@@ -53,6 +54,30 @@ function createMockXcodeProject() {
 }
 
 describe('iOS transforms', () => {
+  it('should set aps-environment to development when apsForProduction is false', () => {
+    const result = applyIosEntitlements(
+      {},
+      { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: false }
+    );
+    expect(result['aps-environment']).toBe('development');
+  });
+
+  it('should set aps-environment to production when apsForProduction is true', () => {
+    const result = applyIosEntitlements(
+      {},
+      { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: true }
+    );
+    expect(result['aps-environment']).toBe('production');
+  });
+
+  it('should overwrite an existing aps-environment value', () => {
+    const result = applyIosEntitlements(
+      { 'aps-environment': 'development' },
+      { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: true }
+    );
+    expect(result['aps-environment']).toBe('production');
+  });
+
   it('should merge Info.plist background modes without overwriting existing values', () => {
     expect(mergeBackgroundModes(['processing', 'fetch'])).toEqual([
       'processing',
