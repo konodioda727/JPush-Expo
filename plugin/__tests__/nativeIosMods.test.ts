@@ -72,15 +72,15 @@ describe('native iOS config mods', () => {
 
   it('keeps app entitlements idempotent across repeated compiles', async () => {
     const projectRoot = createProjectRoot();
-    const entitlementsPath = getFixturePath(projectRoot, APP_ENTITLEMENTS_PATH);
 
     await compileIosMods(projectRoot);
-    const onceCompiled = fs.readFileSync(entitlementsPath, 'utf8');
+    const onceCompiled = readEntitlementsPlist(projectRoot);
 
     await compileIosMods(projectRoot);
-    const twiceCompiled = fs.readFileSync(entitlementsPath, 'utf8');
+    const twiceCompiled = readEntitlementsPlist(projectRoot);
 
-    expect(twiceCompiled).toBe(onceCompiled);
+    expect(twiceCompiled).toEqual(onceCompiled);
+    expect(twiceCompiled['aps-environment']).toBe('development');
   });
 
   it('merges host background modes instead of overwriting them', async () => {
