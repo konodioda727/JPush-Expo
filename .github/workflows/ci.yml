@@ -39,3 +39,6 @@ jobs:
 
       - name: Run lint
         run: npm run lint
+
+      - name: Check npm package contents
+        run: npm publish --dry-run --access public
