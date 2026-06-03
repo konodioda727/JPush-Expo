@@ -57,6 +57,7 @@ const xcode = requireFromTests(
 export const FIXTURE_ROOT = path.join(__dirname, 'fixtures', 'ios-project');
 export const APP_DELEGATE_PATH = ['ios', 'app', 'AppDelegate.swift'];
 export const APP_INFO_PLIST_PATH = ['ios', 'app', 'Info.plist'];
+export const APP_ENTITLEMENTS_PATH = ['ios', 'app', 'app.entitlements'];
 export const APP_BRIDGING_HEADER_PATH = ['ios', 'app', 'app-Bridging-Header.h'];
 export const PBXPROJ_PATH = ['ios', 'app.xcodeproj', 'project.pbxproj'];
 export const J_PUSH_IMPORTS = [
@@ -109,6 +110,22 @@ export function writeInfoPlist(
 ): void {
   fs.writeFileSync(
     getFixturePath(projectRoot, APP_INFO_PLIST_PATH),
+    plist.build(value)
+  );
+}
+
+export function readEntitlementsPlist(projectRoot: string): Record<string, unknown> {
+  return plist.parse(
+    fs.readFileSync(getFixturePath(projectRoot, APP_ENTITLEMENTS_PATH), 'utf8')
+  );
+}
+
+export function writeEntitlementsPlist(
+  projectRoot: string,
+  value: Record<string, unknown>
+): void {
+  fs.writeFileSync(
+    getFixturePath(projectRoot, APP_ENTITLEMENTS_PATH),
     plist.build(value)
   );
 }
