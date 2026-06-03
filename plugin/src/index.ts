@@ -16,9 +16,12 @@
  */
 
 import { ConfigPlugin, createRunOncePlugin } from 'expo/config-plugins';
+import packageJson from '../../package.json';
 import { JPushPluginProps, resolveProps, validateProps } from './types';
 import { withIOSConfig } from './ios';
 import { withAndroidConfig } from './android';
+
+const pluginVersion = packageJson.version;
 
 /**
  * JPush Expo Config Plugin 主入口
@@ -78,4 +81,4 @@ const withJPush: ConfigPlugin<JPushPluginProps> = (config, props) => {
 /**
  * 导出插件（使用 createRunOncePlugin 确保插件只运行一次）
  */
-export default createRunOncePlugin(withJPush, 'mx-jpush-expo', '1.2.7');
+export default createRunOncePlugin(withJPush, 'mx-jpush-expo', pluginVersion);
