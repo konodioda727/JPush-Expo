@@ -47,6 +47,7 @@
 `mx-jpush-expo` 把 Expo 项目接入 JPush 时最容易反复手改的原生步骤，收敛成一次 `expo prebuild`：
 
 - 自动写入 iOS `Info.plist` 的 JPush 配置和后台模式
+- 自动写入 iOS `.entitlements` 的 `aps-environment`，保障 APNs 推送授权
 - 自动注入 iOS `AppDelegate.swift` 的 JPush 初始化与回调代码
 - 自动复用或创建 Swift `Bridging Header`
 - 自动修改 Android `AndroidManifest.xml`、`build.gradle`、`settings.gradle`
@@ -230,7 +231,7 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 
 - `appKey`：JPush 后台创建应用后获得的 AppKey
 - `channel`：渠道标识，默认 `developer-default`
-- `apsForProduction`：是否使用生产环境 APNs，默认 `false`（开发环境）
+- `apsForProduction`：是否使用生产环境 APNs，默认 `false`（开发环境）。插件会据此在 `.entitlements` 里写入 `aps-environment: development / production`。若该键已被 `app.json` 的 `ios.entitlements`、磁盘上的 `.entitlements` 文件或其他插件（如 `expo-notifications`）预先设置，则插件不会覆盖，以用户的显式配置为准
 
 ### Android 配置
 
@@ -242,6 +243,7 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 | 平台 | 文件 | 作用 |
 | --- | --- | --- |
 | iOS | `ios/<app>/Info.plist` | 写入 `JPUSH_*` 配置并合并 `UIBackgroundModes` |
+| iOS | `ios/<app>/<app>.entitlements` | 写入 `aps-environment`（已有值时不覆盖） |
 | iOS | `ios/<app>/AppDelegate.swift` | 注入 JPush 初始化、APNs 回调和代理扩展 |
 | iOS | `ios/<app>/<target>-Bridging-Header.h` | 复用或创建桥接头文件，保证 import 幂等 |
 | Android | `android/app/src/main/AndroidManifest.xml` | 写入 `JPUSH_APPKEY` / `JPUSH_CHANNEL` meta-data |
@@ -263,6 +265,8 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 - `UIBackgroundModes` 会保留宿主已有值，并补齐：
   - `fetch`
   - `remote-notification`
+- `<app>.entitlements` 中存在 `aps-environment`，值为 `development` 或 `production`：
+  - 若已在 `app.json` 的 `ios.entitlements`、磁盘文件或其他插件中设置过，则以那里的值为准
 - `AppDelegate.swift` 中存在 `JPUSHService.setup`
 - `AppDelegate.swift` 中的调试日志与 `JPUSHService.setDebugMode()` 会被 `#if DEBUG` 包裹，release 构建不再无条件打印
 - 如果项目使用 Swift，插件会优先复用已有 `SWIFT_OBJC_BRIDGING_HEADER`；未配置时会自动创建 `<target>-Bridging-Header.h`
@@ -341,6 +345,7 @@ mx-jpush-expo/
 │   │   ├── types.ts
 │   │   ├── ios/
 │   │   │   ├── infoPlist.ts
+│   │   │   ├── entitlements.ts
 │   │   │   ├── appDelegate.ts
 │   │   │   └── bridgingHeader.ts
 │   │   ├── android/
@@ -371,6 +376,7 @@ mx-jpush-expo/
 
 完整更新历史请查看 [CHANGELOG.md](./CHANGELOG.md)。
 
+- iOS prebuild 现在自动写入 `.entitlements` 的 `aps-environment`，解决推送通知无法收到的问题；若已由 `app.json`、磁盘文件或其他插件配置，则保留已有值
 - iOS `UIBackgroundModes` 改为合并写入，不再覆盖宿主已有后台模式
 - Swift `Bridging Header` 支持优先复用、缺失自动创建，并保持幂等
 - 补齐 iOS / Android fixture-based 原生回归测试

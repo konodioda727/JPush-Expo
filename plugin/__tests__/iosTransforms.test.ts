@@ -70,12 +70,14 @@ describe('iOS transforms', () => {
     expect(result['aps-environment']).toBe('production');
   });
 
-  it('should overwrite an existing aps-environment value', () => {
+  it('should not overwrite aps-environment when it is already set (e.g. by expo-notifications or app.json)', () => {
+    // Expo merges disk file + app.json into modResults before our action runs,
+    // so an existing value means the user or another plugin already configured it.
     const result = applyIosEntitlements(
       { 'aps-environment': 'development' },
       { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: true }
     );
-    expect(result['aps-environment']).toBe('production');
+    expect(result['aps-environment']).toBe('development');
   });
 
   it('should merge Info.plist background modes without overwriting existing values', () => {

@@ -1,6 +1,11 @@
 # Changelog
 
 历史版本更新从 README 中拆出，便于首页专注接入说明与使用导航。
+## v1.2.7 (2026-06-03)
+
+- 修复 iOS prebuild 不自动写入 `.entitlements` 文件导致推送通知无法收到的问题
+- 新增 `withIosEntitlements`：根据 `apsForProduction` 自动写入 `aps-environment: development / production`
+- 若 `aps-environment` 已由 `app.json` 的 `ios.entitlements`、磁盘上的 `.entitlements` 文件或其他插件（如 `expo-notifications`）预先设置，插件不再覆盖，以已有值为准
 
 ## v1.2.6 (2026-05-16)
 
