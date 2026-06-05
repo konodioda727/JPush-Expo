@@ -1,12 +1,12 @@
 {
   "name": "mx-jpush-expo",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Expo 集成极光推送（JPush）一体化解决方案，支持 iOS/Android 厂商通道",
   "main": "app.plugin.js",
   "types": "plugin/build/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/konodioda727/JPush-Expo"
+    "url": "git+https://github.com/konodioda727/JPush-Expo.git"
   },
   "keywords": [
     "jpush",

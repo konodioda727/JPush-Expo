@@ -4,6 +4,7 @@ import { compileModsAsync } from 'expo/config-plugins';
 import withJPush from '../src';
 import {
   APP_BRIDGING_HEADER_PATH,
+  APP_ENTITLEMENTS_PATH,
   J_PUSH_IMPORTS,
   PBXPROJ_PATH,
   compileIosMods,
@@ -11,15 +12,77 @@ import {
   getFixturePath,
   getTargetBuildSettings,
   loadXcodeProject,
+  readEntitlementsPlist,
   readInfoPlist,
   registerIosFixtureLifecycleHooks,
   removeBridgingHeaderBuildSetting,
+  writeEntitlementsPlist,
   writeInfoPlist,
 } from './iosFixture';
 import { createExpoConfig, createPluginProps } from './testProps';
 registerIosFixtureLifecycleHooks();
 
 describe('native iOS config mods', () => {
+  it('creates app entitlements with development APNs by default', async () => {
+    const projectRoot = createProjectRoot();
+    const entitlementsPath = getFixturePath(projectRoot, APP_ENTITLEMENTS_PATH);
+
+    expect(fs.existsSync(entitlementsPath)).toBe(false);
+
+    await compileIosMods(projectRoot);
+
+    const entitlements = readEntitlementsPlist(projectRoot);
+    const appBuildSettings = getTargetBuildSettings(
+      loadXcodeProject(projectRoot),
+      'app'
+    );
+
+    expect(entitlements['aps-environment']).toBe('development');
+    expect(
+      appBuildSettings.every(
+        (buildSettings) =>
+          buildSettings.CODE_SIGN_ENTITLEMENTS === 'app/app.entitlements'
+      )
+    ).toBe(true);
+  });
+
+  it('creates app entitlements with production APNs when apsForProduction is true', async () => {
+    const projectRoot = createProjectRoot();
+
+    await compileIosMods(projectRoot, { apsForProduction: true });
+
+    const entitlements = readEntitlementsPlist(projectRoot);
+
+    expect(entitlements['aps-environment']).toBe('production');
+  });
+
+  it('does not overwrite an existing aps-environment entitlement', async () => {
+    const projectRoot = createProjectRoot();
+
+    writeEntitlementsPlist(projectRoot, {
+      'aps-environment': 'development',
+    });
+
+    await compileIosMods(projectRoot, { apsForProduction: true });
+
+    const entitlements = readEntitlementsPlist(projectRoot);
+
+    expect(entitlements['aps-environment']).toBe('development');
+  });
+
+  it('keeps app entitlements idempotent across repeated compiles', async () => {
+    const projectRoot = createProjectRoot();
+
+    await compileIosMods(projectRoot);
+    const onceCompiled = readEntitlementsPlist(projectRoot);
+
+    await compileIosMods(projectRoot);
+    const twiceCompiled = readEntitlementsPlist(projectRoot);
+
+    expect(twiceCompiled).toEqual(onceCompiled);
+    expect(twiceCompiled['aps-environment']).toBe('development');
+  });
+
   it('merges host background modes instead of overwriting them', async () => {
     const projectRoot = createProjectRoot();
     const infoPlist = readInfoPlist(projectRoot);
