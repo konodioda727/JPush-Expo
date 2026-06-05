@@ -39,3 +39,6 @@ jobs:
 
       - name: Run lint
         run: npm run lint
+
+      - name: Check npm package contents
+        run: npm pack --dry-run
