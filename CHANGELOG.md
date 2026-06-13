@@ -1,6 +1,14 @@
 # Changelog
 
 历史版本更新从 README 中拆出，便于首页专注接入说明与使用导航。
+## v1.3.0 (2026-06-13)
+
+- 支持 Expo 56（React Native 0.85.2 / React 19.2 / Hermes v1）
+- 仓库开发基线升级到 Expo SDK 56，`devDependencies.expo` 升级到 `^56.0.0`
+- iOS `AppDelegate.swift` 注入兼容 Swift 访问级别导入（SDK 56 默认 `internal import Expo`），import 锚点不再失配
+- `engines.node` 提升到 `>= 20.19.4`（Expo SDK 56 要求）
+- 更新 iOS fixture 至 SDK 56 模板，回归测试覆盖 `internal import` 场景
+
 ## v1.2.7 (2026-06-03)
 
 - 修复 iOS prebuild 不自动写入 `.entitlements` 文件导致推送通知无法收到的问题

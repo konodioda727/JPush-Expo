@@ -11,8 +11,8 @@
     <a href="https://www.npmjs.com/package/mx-jpush-expo"><img alt="npm version" src="https://img.shields.io/npm/v/mx-jpush-expo?logo=npm&label=npm"></a>
     <a href="https://github.com/konodioda727/JPush-Expo/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/konodioda727/JPush-Expo/ci.yml?branch=main&logo=githubactions&label=CI"></a>
     <a href="https://github.com/konodioda727/JPush-Expo/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/konodioda727/JPush-Expo"></a>
-    <img alt="Expo SDK 55+" src="https://img.shields.io/badge/Expo%20SDK-55%2B-000020?logo=expo">
-    <a href="https://nodejs.org/"><img alt="Node.js >=18.18.0" src="https://img.shields.io/badge/Node.js-%3E%3D18.18.0-339933?logo=nodedotjs&logoColor=white"></a>
+    <img alt="Expo SDK 55 / 56" src="https://img.shields.io/badge/Expo%20SDK-55%20%2F%2056-000020?logo=expo">
+    <a href="https://nodejs.org/"><img alt="Node.js >=20.19.4" src="https://img.shields.io/badge/Node.js-%3E%3D20.19.4-339933?logo=nodedotjs&logoColor=white"></a>
   </p>
 
 </div>
@@ -65,10 +65,10 @@
 
 | 项目 | 版本 |
 | --- | --- |
-| Expo SDK | `55+` |
-| 仓库开发基线 | `Expo SDK 55` |
-| React Native | `0.83.6` |
-| Node.js | `>= 18.18.0` |
+| Expo SDK | `55 / 56` |
+| 仓库开发基线 | `Expo SDK 56` |
+| React Native | `0.83.6（SDK 55）/ 0.85.2（SDK 56）` |
+| Node.js | `>= 20.19.4` |
 | `jpush-react-native` | `3.1.9` |
 | `jcore-react-native` | `2.3.0` |
 
@@ -376,6 +376,8 @@ mx-jpush-expo/
 
 完整更新历史请查看 [CHANGELOG.md](./CHANGELOG.md)。
 
+- 支持 Expo 56（React Native 0.85.2 / React 19.2），仓库开发基线升级到 Expo SDK 56，Node.js 要求提升到 `>= 20.19.4`
+- iOS `AppDelegate.swift` 注入兼容 Swift 访问级别导入（SDK 56 默认 `internal import Expo`）
 - iOS prebuild 现在自动写入 `.entitlements` 的 `aps-environment`，解决推送通知无法收到的问题；若已由 `app.json`、磁盘文件或其他插件配置，则保留已有值
 - iOS `UIBackgroundModes` 改为合并写入，不再覆盖宿主已有后台模式
 - Swift `Bridging Header` 支持优先复用、缺失自动创建，并保持幂等

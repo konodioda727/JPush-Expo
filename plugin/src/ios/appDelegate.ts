@@ -15,8 +15,13 @@ const DID_FINISH_LAUNCHING_PATTERN =
   /\bdidFinishLaunchingWithOptions\b/;
 const APP_DELEGATE_CLASS_PATTERN = /\bclass\s+AppDelegate\b/;
 
+// 兼容 Swift 访问级别导入（SDK 56 起默认 `internal import Expo`）：
+// public / package / internal / fileprivate / private import 均可作为锚点
+const IMPORT_LINE_PATTERN =
+  /^(?:public\s+|package\s+|internal\s+|fileprivate\s+|private\s+)?import\s+/;
+
 function getLastImportLine(src: string): number {
-  const lineIndex = findLastLineIndex(src, /^import\s+/);
+  const lineIndex = findLastLineIndex(src, IMPORT_LINE_PATTERN);
   if (lineIndex < 0) {
     throw new Error('[MX_JPush_Expo] 未找到 Swift import 区域');
   }
