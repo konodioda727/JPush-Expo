@@ -57,6 +57,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@expo/dom-webview": "^56.0.5",
     "@types/jest": "^29.5.14",
     "@types/node": "^18.19.130",
     "@typescript-eslint/eslint-plugin": "^8.59.3",
@@ -78,6 +79,7 @@
       "picomatch@^2": "2.3.2",
       "picomatch@^4": "4.0.4",
       "postcss": "8.5.14",
+      "shell-quote": "1.8.4",
       "ws@^8.18.3": "8.20.1",
       "xcode@3.0.1>uuid": "11.1.1"
     }
