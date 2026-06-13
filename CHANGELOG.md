@@ -8,6 +8,10 @@
 - iOS `AppDelegate.swift` 注入兼容 Swift 访问级别导入（SDK 56 默认 `internal import Expo`），import 锚点不再失配
 - `engines.node` 提升到 `>= 20.19.4`（Expo SDK 56 要求）
 - 更新 iOS fixture 至 SDK 56 模板，回归测试覆盖 `internal import` 场景
+- `channel` 默认使用 `developer-default`，`packageName` 默认读取 `expo.android.package`，减少基础接入配置
+- 新增 Expo 56 真实 `prebuild` smoke 脚本和手动 GitHub Actions workflow，覆盖发布包入口与 iOS / Android 生成结果
+- 补齐 `shell-quote` 传递依赖安全 override，并对齐 `@expo/dom-webview@56.0.5` 以消除 Expo 56 peer warning
+- 更新维护文档，明确发布前需要核对 npm 版本、GitHub tag 和 GitHub Release 页面
 
 ## v1.2.7 (2026-06-03)
 

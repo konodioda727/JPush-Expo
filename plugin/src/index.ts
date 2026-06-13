@@ -64,7 +64,7 @@ const withJPush: ConfigPlugin<JPushPluginProps> = (config, props) => {
   try {
     // 验证配置参数
     validateProps(props);
-    const resolvedProps = resolveProps(props);
+    const resolvedProps = resolveProps(props, config.android?.package);
 
     // 应用 iOS 配置
     config = withIOSConfig(config, resolvedProps);

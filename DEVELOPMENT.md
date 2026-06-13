@@ -80,6 +80,12 @@ npm test -- --coverage
 
 # 运行 lint
 npm run lint
+
+# 检查传递依赖安全基线
+pnpm audit --audit-level moderate
+
+# 验证 Expo 56 真实 prebuild 输出
+npm run test:prebuild:expo56
 ```
 
 当前主线的测试重点：
@@ -207,6 +213,22 @@ describe('withMyPlugin', () => {
 });
 ```
 
+### Expo 56 prebuild smoke
+
+仓库提供 `npm run test:prebuild:expo56`，用于验证发布包入口和真实 Expo 56 模板：
+
+- 先构建插件并用 `npm pack` 生成本地 tarball
+- 在临时目录创建最小 Expo 56 应用
+- 安装 `mx-jpush-expo` tarball、`jpush-react-native@3.1.9` 和 `jcore-react-native@2.3.0`
+- 执行 `expo prebuild --clean --no-install`
+- 断言 iOS / Android 关键原生文件包含 JPush 注入结果
+
+本地调试时可保留临时目录：
+
+```bash
+MX_JPUSH_KEEP_SMOKE_DIR=1 npm run test:prebuild:expo56
+```
+
 ### 集成测试
 
 在实际项目中测试：
@@ -230,8 +252,7 @@ describe('withMyPlugin', () => {
          [
            "mx-jpush-expo",
            {
-             "appKey": "test-key",
-             "channel": "test-channel"
+             "appKey": "test-key"
            }
          ]
        ]
@@ -286,27 +307,33 @@ npm run build
 ```bash
 npm test -- --runInBand
 npm run lint
+pnpm audit --audit-level moderate
+npm run test:prebuild:expo56
 ```
 
 ### 4. 检查发布包
 
 ```bash
-npm pack
+npm pack --dry-run
 ```
 
-### 5. 发布
+### 5. 发布前核对
 
 ```bash
-npm publish
+npm view mx-jpush-expo version dist-tags --json
+gh release list --limit 10
+git tag --list 'v*' --sort=-v:refname | head
 ```
 
-### 6. 打 tag
+确认 `package.json`、npm 版本、GitHub tag 和 GitHub Release 页面使用同一个版本号。npm 发布成功但 GitHub Release 缺失时，不要把仓库状态视为发布完成。
 
-只有 `npm publish` 成功后，才在同一提交上补 tag：
+### 6. 发布
+
+通过 GitHub Release published 事件触发 `.github/workflows/publish.yml` 发布 npm 包。只有 npm 发布成功后，才在同一提交上确认 tag 和 release 页面：
 
 ```bash
-git tag v1.2.5
-git push origin v1.2.5
+npm view mx-jpush-expo version dist-tags --json
+gh release view v1.3.0
 ```
 
 ## 常见问题
