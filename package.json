@@ -41,6 +41,7 @@
     "build": "tsc --project plugin/tsconfig.json",
     "clean": "rm -rf plugin/build",
     "test": "jest --config plugin/jest.config.js",
+    "test:prebuild:expo56": "node scripts/expo-56-prebuild-smoke.js",
     "prepare": "npm run build",
     "lint": "eslint plugin/src plugin/__tests__ --ext .ts"
   },
