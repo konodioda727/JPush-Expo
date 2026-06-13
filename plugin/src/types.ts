@@ -203,6 +203,8 @@ export function resolveProps(
   props: JPushPluginProps,
   androidPackageName?: string
 ): ResolvedJPushPluginProps {
+  validateProps(props);
+
   const channel = props.channel?.trim() || 'developer-default';
   const packageName = props.packageName?.trim() || androidPackageName?.trim();
 

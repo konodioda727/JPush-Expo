@@ -53,7 +53,7 @@ describe('withJPush', () => {
 
   it('should throw error for invalid channel type', () => {
     expect(() => {
-      validateProps({
+      resolveProps({
         appKey: 'test-app-key',
         channel: 123 as any,
         packageName: 'com.example.test',
@@ -63,7 +63,7 @@ describe('withJPush', () => {
 
   it('should throw error for invalid packageName type', () => {
     expect(() => {
-      validateProps({
+      resolveProps({
         appKey: 'test-app-key',
         channel: 'test-channel',
         packageName: 123 as any,

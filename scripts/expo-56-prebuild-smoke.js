@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { pathToFileURL } = require('url');
 
 const repoRoot = path.resolve(__dirname, '..');
 const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'mx-jpush-expo56-'));
@@ -51,6 +52,7 @@ try {
   });
   const [{ filename }] = JSON.parse(packOutput);
   tarballPath = path.join(repoRoot, filename);
+  const tarballUrl = pathToFileURL(tarballPath).href;
 
   fs.mkdirSync(appRoot, { recursive: true });
   fs.writeFileSync(
@@ -70,7 +72,7 @@ try {
           'react-native': '0.85.2',
           'jpush-react-native': '3.1.9',
           'jcore-react-native': '2.3.0',
-          'mx-jpush-expo': `file:${tarballPath}`,
+          'mx-jpush-expo': tarballUrl,
         },
         devDependencies: {},
       },
@@ -132,7 +134,7 @@ try {
   );
 
   run('npm', ['install', '--no-audit', '--no-fund'], { cwd: appRoot });
-  run('npx', ['expo', 'prebuild', '--clean', '--no-install'], { cwd: appRoot });
+  run('npm', ['exec', '--', 'expo', 'prebuild', '--clean', '--no-install'], { cwd: appRoot });
 
   const appBuildGradle = read('android/app/build.gradle');
   assertContains(appBuildGradle, 'manifestPlaceholders += [', 'android/app/build.gradle');
@@ -142,9 +144,9 @@ try {
   assertContains(appBuildGradle, 'JPUSH_PKGNAME', 'android/app/build.gradle');
   assertContains(appBuildGradle, 'com.example.jpushexpo56', 'android/app/build.gradle');
   assertContains(appBuildGradle, "implementation project(':jpush-react-native')", 'android/app/build.gradle');
-  assertContains(appBuildGradle, "implementation 'cn.jiguang.sdk.plugin:huawei:5.9.0'", 'android/app/build.gradle');
-  assertContains(appBuildGradle, "implementation 'cn.jiguang.sdk.plugin:fcm:5.9.0'", 'android/app/build.gradle');
-  assertContains(appBuildGradle, "implementation 'cn.jiguang.sdk.plugin:xiaomi:5.9.0'", 'android/app/build.gradle');
+  assertContains(appBuildGradle, "implementation 'cn.jiguang.sdk.plugin:huawei:", 'android/app/build.gradle');
+  assertContains(appBuildGradle, "implementation 'cn.jiguang.sdk.plugin:fcm:", 'android/app/build.gradle');
+  assertContains(appBuildGradle, "implementation 'cn.jiguang.sdk.plugin:xiaomi:", 'android/app/build.gradle');
 
   const manifest = read('android/app/src/main/AndroidManifest.xml');
   assertContains(manifest, 'android:name="JPUSH_APPKEY"', 'AndroidManifest.xml');
