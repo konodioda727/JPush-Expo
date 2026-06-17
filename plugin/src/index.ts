@@ -18,7 +18,7 @@
 
 import { ConfigPlugin, createRunOncePlugin } from 'expo/config-plugins';
 import packageJson from '../../package.json';
-import { JPushPluginProps, resolveProps, validateProps } from './types';
+import { JPushPluginProps, resolveProps } from './types';
 import { withIOSConfig } from './ios';
 import { withAndroidConfig } from './android';
 
@@ -61,8 +61,6 @@ const pluginVersion = packageJson.version;
  */
 const withJPush: ConfigPlugin<JPushPluginProps> = (config, props) => {
   try {
-    // 验证配置参数
-    validateProps(props);
     const resolvedProps = resolveProps(props, config.android?.package);
 
     // 应用 iOS 配置
