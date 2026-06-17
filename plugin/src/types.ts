@@ -78,15 +78,17 @@ export interface JPushPluginProps {
   appKey: string;
 
   /**
-   * 极光推送 Channel（必填）
+   * 极光推送 Channel（可选）
+   * @default "developer-default"
    */
-  channel: string;
+  channel?: string;
 
   /**
-   * Android 包名（必填）
+   * Android 包名（可选）
    * 需要与极光推送控制台注册的包名一致
+   * @default config.android.package
    */
-  packageName: string;
+  packageName?: string;
 
   /**
    * iOS 推送环境（可选）
@@ -104,6 +106,8 @@ export interface JPushPluginProps {
  * 插件内部使用的已归一化配置
  */
 export interface ResolvedJPushPluginProps extends JPushPluginProps {
+  channel: string;
+  packageName: string;
   apsForProduction: boolean;
 }
 
@@ -177,12 +181,12 @@ export function validateProps(props: JPushPluginProps | undefined): asserts prop
     throw new Error('[MX_JPush_Expo] appKey 是必填项，且必须是字符串');
   }
 
-  if (!props.channel || typeof props.channel !== 'string') {
-    throw new Error('[MX_JPush_Expo] channel 是必填项，且必须是字符串');
+  if (props.channel !== undefined && typeof props.channel !== 'string') {
+    throw new Error('[MX_JPush_Expo] channel 必须是字符串');
   }
 
-  if (!props.packageName || typeof props.packageName !== 'string') {
-    throw new Error('[MX_JPush_Expo] packageName 是必填项，且必须是字符串');
+  if (props.packageName !== undefined && typeof props.packageName !== 'string') {
+    throw new Error('[MX_JPush_Expo] packageName 必须是字符串');
   }
 
   if (props.apsForProduction !== undefined && typeof props.apsForProduction !== 'boolean') {
@@ -196,10 +200,24 @@ export function validateProps(props: JPushPluginProps | undefined): asserts prop
  * 归一化插件参数，补齐内部默认值
  */
 export function resolveProps(
-  props: JPushPluginProps
+  props: JPushPluginProps,
+  androidPackageName?: string
 ): ResolvedJPushPluginProps {
+  validateProps(props);
+
+  const channel = props.channel?.trim() || 'developer-default';
+  const packageName = props.packageName?.trim() || androidPackageName?.trim();
+
+  if (!packageName) {
+    throw new Error(
+      '[MX_JPush_Expo] packageName 是必填项，且必须是非空字符串；也可以通过 expo.android.package 自动推断'
+    );
+  }
+
   return {
     ...props,
+    channel,
+    packageName,
     apsForProduction: props.apsForProduction ?? false,
   };
 }

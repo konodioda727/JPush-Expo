@@ -207,7 +207,7 @@ export function syncBridgingHeaderFile(filePath: string): void {
 
 /**
  * 配置 iOS 桥接头文件
- * 支持 React Native 0.79.5+ 的 Swift 新架构
+ * 支持 React Native 0.83.6+ 的 Swift 新架构
  */
 export const withIosBridgingHeader: ConfigPlugin = (config) =>
   withXcodeProject(config, (config) => {

@@ -1,12 +1,12 @@
 {
   "name": "mx-jpush-expo",
-  "version": "1.2.5",
+  "version": "1.3.0",
   "description": "Expo 集成极光推送（JPush）一体化解决方案，支持 iOS/Android 厂商通道",
   "main": "app.plugin.js",
   "types": "plugin/build/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/konodioda727/JPush-Expo"
+    "url": "git+https://github.com/konodioda727/JPush-Expo.git"
   },
   "keywords": [
     "jpush",
@@ -41,7 +41,8 @@
     "build": "tsc --project plugin/tsconfig.json",
     "clean": "rm -rf plugin/build",
     "test": "jest --config plugin/jest.config.js",
-    "prepare": "npm run build",
+    "test:prebuild:expo56": "node scripts/expo-56-prebuild-smoke.js",
+    "prepare": "pnpm run build",
     "lint": "eslint plugin/src plugin/__tests__ --ext .ts"
   },
   "author": {
@@ -49,23 +50,42 @@
     "url": "https://github.com/konodioda727"
   },
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=20.19.4"
   },
   "license": "MIT",
   "peerDependencies": {
-    "expo": ">=53.0.0"
+    "expo": ">=55.0.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
-    "@types/jest": "^29.5.0",
-    "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.57.1",
-    "@typescript-eslint/parser": "^8.57.1",
-    "eslint": "^9.39.4",
-    "globals": "^17.4.0",
-    "expo": "^53.0.27",
-    "jest": "^29.5.0",
-    "ts-jest": "^29.1.0",
-    "typescript": "^5.0.0"
+    "@eslint/js": "^10.0.1",
+    "@expo/dom-webview": "^56.0.5",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^18.19.130",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
+    "eslint": "^10.4.0",
+    "expo": "^56.0.0",
+    "globals": "^17.6.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.9",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "@babel/plugin-transform-modules-systemjs": "7.29.4",
+      "@xmldom/xmldom": "0.8.13",
+      "brace-expansion@^1": "1.1.13",
+      "brace-expansion@^5": "5.0.6",
+      "node-forge": "1.4.0",
+      "picomatch@^2": "2.3.2",
+      "picomatch@^4": "4.0.4",
+      "postcss": "8.5.14",
+      "shell-quote": "1.8.4",
+      "ws@^6": "6.2.4",
+      "ws@^7": "7.5.11",
+      "ws@^8": "8.21.0",
+      "js-yaml": "4.2.0",
+      "xcode@3.0.1>uuid": "11.1.1"
+    }
   }
 }
