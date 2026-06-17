@@ -11,8 +11,8 @@
     <a href="https://www.npmjs.com/package/mx-jpush-expo"><img alt="npm version" src="https://img.shields.io/npm/v/mx-jpush-expo?logo=npm&label=npm"></a>
     <a href="https://github.com/konodioda727/JPush-Expo/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/konodioda727/JPush-Expo/ci.yml?branch=main&logo=githubactions&label=CI"></a>
     <a href="https://github.com/konodioda727/JPush-Expo/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/konodioda727/JPush-Expo"></a>
-    <img alt="Expo SDK 53+" src="https://img.shields.io/badge/Expo%20SDK-53%2B-000020?logo=expo">
-    <a href="https://nodejs.org/"><img alt="Node.js >=18.18.0" src="https://img.shields.io/badge/Node.js-%3E%3D18.18.0-339933?logo=nodedotjs&logoColor=white"></a>
+    <img alt="Expo SDK 55 / 56" src="https://img.shields.io/badge/Expo%20SDK-55%20%2F%2056-000020?logo=expo">
+    <a href="https://nodejs.org/"><img alt="Node.js >=20.19.4" src="https://img.shields.io/badge/Node.js-%3E%3D20.19.4-339933?logo=nodedotjs&logoColor=white"></a>
   </p>
 
 </div>
@@ -47,6 +47,7 @@
 `mx-jpush-expo` 把 Expo 项目接入 JPush 时最容易反复手改的原生步骤，收敛成一次 `expo prebuild`：
 
 - 自动写入 iOS `Info.plist` 的 JPush 配置和后台模式
+- 自动写入 iOS `.entitlements` 的 `aps-environment`，保障 APNs 推送授权
 - 自动注入 iOS `AppDelegate.swift` 的 JPush 初始化与回调代码
 - 自动复用或创建 Swift `Bridging Header`
 - 自动修改 Android `AndroidManifest.xml`、`build.gradle`、`settings.gradle`
@@ -64,10 +65,10 @@
 
 | 项目 | 版本 |
 | --- | --- |
-| Expo SDK | `53+` |
-| 仓库开发基线 | `Expo SDK 53` |
-| React Native | `0.76.9` |
-| Node.js | `>= 18.18.0` |
+| Expo SDK | `55 / 56` |
+| 仓库开发基线 | `Expo SDK 56` |
+| React Native | `0.83.6（SDK 55）/ 0.85.2（SDK 56）` |
+| Node.js | `>= 20.19.4` |
 | `jpush-react-native` | `3.1.9` |
 | `jcore-react-native` | `2.3.0` |
 
@@ -127,9 +128,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         'mx-jpush-expo',
         {
           appKey: process.env.JPUSH_APP_KEY ?? '',
-          channel: process.env.JPUSH_CHANNEL ?? 'developer-default',
-          packageName:
-            process.env.JPUSH_PKGNAME ?? config.android?.package ?? '',
+          channel: process.env.JPUSH_CHANNEL,
+          packageName: process.env.JPUSH_PKGNAME,
           apsForProduction: isProduction,
           vendorChannels: {
             huawei: { enabled: true },
@@ -167,7 +167,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
 ### 配置要点
 
-- `appKey`、`channel`、`packageName` 仍然是插件必填项
+- `appKey` 仍然是插件必填项
+- `channel` 默认使用 `developer-default`；只有需要区分渠道时才需要显式传入
+- `packageName` 默认读取 `expo.android.package`；如果项目未配置 Android 包名，则需要显式传入
 - iOS 初始化参数会写入 `Info.plist`，不再直接拼进 `AppDelegate.swift`
 - Android `manifestPlaceholders` 优先读取环境变量或 `gradle.properties`，缺失时会回退到插件配置里的 `appKey` / `channel` / `packageName`
 - 如果宿主已经定义了 `manifestPlaceholders`，插件会通过 `manifestPlaceholders += [...]` 追加 JPush 字段
@@ -230,11 +232,11 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 
 - `appKey`：JPush 后台创建应用后获得的 AppKey
 - `channel`：渠道标识，默认 `developer-default`
-- `apsForProduction`：是否使用生产环境 APNs，默认 `false`（开发环境）
+- `apsForProduction`：是否使用生产环境 APNs，默认 `false`（开发环境）。插件会据此在 `.entitlements` 里写入 `aps-environment: development / production`，并保留宿主已有的其他 entitlement 键
 
 ### Android 配置
 
-- `packageName`：Android 应用包名，用于 `manifestPlaceholders`
+- `packageName`：Android 应用包名，用于 `manifestPlaceholders`，默认读取 `expo.android.package`
 - 厂商通道通过 `vendorChannels` 对象配置，每个厂商独立开关
 
 ## 插件会修改哪些原生文件
@@ -242,6 +244,7 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 | 平台 | 文件 | 作用 |
 | --- | --- | --- |
 | iOS | `ios/<app>/Info.plist` | 写入 `JPUSH_*` 配置并合并 `UIBackgroundModes` |
+| iOS | `ios/<app>/<app>.entitlements` | 按 `apsForProduction` 写入 `aps-environment` 并保留其他 entitlement 键 |
 | iOS | `ios/<app>/AppDelegate.swift` | 注入 JPush 初始化、APNs 回调和代理扩展 |
 | iOS | `ios/<app>/<target>-Bridging-Header.h` | 复用或创建桥接头文件，保证 import 幂等 |
 | Android | `android/app/src/main/AndroidManifest.xml` | 写入 `JPUSH_APPKEY` / `JPUSH_CHANNEL` meta-data |
@@ -263,6 +266,7 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 - `UIBackgroundModes` 会保留宿主已有值，并补齐：
   - `fetch`
   - `remote-notification`
+- `<app>.entitlements` 中存在 `aps-environment`，值跟随 `apsForProduction` 为 `development` 或 `production`
 - `AppDelegate.swift` 中存在 `JPUSHService.setup`
 - `AppDelegate.swift` 中的调试日志与 `JPUSHService.setDebugMode()` 会被 `#if DEBUG` 包裹，release 构建不再无条件打印
 - 如果项目使用 Swift，插件会优先复用已有 `SWIFT_OBJC_BRIDGING_HEADER`；未配置时会自动创建 `<target>-Bridging-Header.h`
@@ -293,9 +297,9 @@ manifestPlaceholders += [
 
 不支持。JPush 需要原生工程和原生依赖，必须通过 `expo prebuild` 进入 Dev Client 或原生构建流程。
 
-### 为什么 iOS 仍然要求在插件配置里填写 `appKey` / `channel`？
+### 为什么 iOS 仍然要求在插件配置里填写 `appKey`？
 
-因为参数校验和 `Info.plist` 注入都发生在 Expo 配置阶段。它们不会再被直接拼进 `AppDelegate.swift`，但仍然需要在配置阶段提供。
+因为参数校验和 `Info.plist` 注入都发生在 Expo 配置阶段。它不会再被直接拼进 `AppDelegate.swift`，但仍然需要在配置阶段提供。`channel` 未传时会写入默认值 `developer-default`。
 
 ### Android 遇到 Gradle 插件版本错误怎么办？
 
@@ -317,8 +321,9 @@ npm 包入口是根目录的 `app.plugin.js`，它会加载发布产物 `plugin/
 
 ```bash
 npm run build
-npm run test -- --runInBand
-npm run lint
+pnpm test --runInBand
+pnpm run lint
+pnpm run test:prebuild:expo56
 ```
 
 ### 测试覆盖重点
@@ -327,6 +332,7 @@ npm run lint
 - iOS `AppDelegate.swift` 注入与幂等
 - Android `Manifest`、Gradle、Settings 和 `gradle.properties` 原生输出
 - fixture-based 回归测试，确保 `compileModsAsync` 输出稳定
+- Expo 56 真实 `prebuild --clean --no-install` smoke，验证发布包入口和 iOS / Android 生成结果
 
 更多开发细节见 [DEVELOPMENT.md](./DEVELOPMENT.md)。
 
@@ -341,6 +347,7 @@ mx-jpush-expo/
 │   │   ├── types.ts
 │   │   ├── ios/
 │   │   │   ├── infoPlist.ts
+│   │   │   ├── entitlements.ts
 │   │   │   ├── appDelegate.ts
 │   │   │   └── bridgingHeader.ts
 │   │   ├── android/
@@ -371,13 +378,18 @@ mx-jpush-expo/
 
 完整更新历史请查看 [CHANGELOG.md](./CHANGELOG.md)。
 
+- 支持 Expo 56（React Native 0.85.2 / React 19.2），仓库开发基线升级到 Expo SDK 56，Node.js 要求提升到 `>= 20.19.4`
+- `channel` 和 `packageName` 支持默认推断，基础接入只需要显式提供 `appKey`
+- 新增 Expo 56 真实 prebuild smoke，可验证发布包入口和 iOS / Android 生成结果
+- iOS `AppDelegate.swift` 注入兼容 Swift 访问级别导入（SDK 56 默认 `internal import Expo`）
+- iOS prebuild 现在会按 `apsForProduction` 写入 `.entitlements` 的 `aps-environment`，解决推送通知无法收到的问题，同时保留宿主已有的其他 entitlement 键
 - iOS `UIBackgroundModes` 改为合并写入，不再覆盖宿主已有后台模式
 - Swift `Bridging Header` 支持优先复用、缺失自动创建，并保持幂等
 - 补齐 iOS / Android fixture-based 原生回归测试
 - Android `manifestPlaceholders` 改为在宿主现有配置后追加，不再依赖 `versionName` 文本锚点
 - iOS `AppDelegate.swift` 中的 JPush 调试日志只在 `DEBUG` 构建启用
 - 加入 ESLint 与 CI 质量闭环
-- 对齐 Expo SDK 53 的版本声明与仓库开发基线
+- 对齐 Expo SDK 55 的版本声明与仓库开发基线
 - Android 敏感参数支持环境变量 / `gradle.properties` 读取，不再明文写入构建脚本
 - iOS 初始化参数改为从 `Info.plist` 读取，不再直接注入 `AppDelegate.swift`
 
