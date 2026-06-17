@@ -1,16 +1,13 @@
-name: CI
+name: Expo 56 Prebuild Smoke
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  quality:
+  prebuild-smoke:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,14 +28,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build plugin
-        run: pnpm run build
-
-      - name: Run tests
-        run: pnpm test --runInBand
-
-      - name: Run lint
-        run: pnpm run lint
-
-      - name: Check npm package contents
-        run: npm pack --dry-run
+      - name: Run Expo 56 prebuild smoke
+        run: pnpm run test:prebuild:expo56
