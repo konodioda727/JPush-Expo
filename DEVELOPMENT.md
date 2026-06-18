@@ -333,7 +333,7 @@ git tag --list 'v*' --sort=-v:refname | head
 
 ```bash
 npm view mx-jpush-expo version dist-tags --json
-gh release view v1.3.0
+gh release view v1.3.1
 ```
 
 ## 常见问题

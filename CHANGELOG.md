@@ -1,6 +1,11 @@
 # Changelog
 
 历史版本更新从 README 中拆出，便于首页专注接入说明与使用导航。
+## v1.3.1 (2026-06-18)
+
+- 重新发布 v1.3.0 整合优化内容到新的 npm 版本，避免覆盖已存在的 `mx-jpush-expo@1.3.0`
+- 包含 Expo 56 smoke、`channel` / `packageName` 默认值、iOS entitlements、CI package guard 和 audit overrides
+
 ## v1.3.0 (2026-06-18)
 
 - 支持 Expo 56（React Native 0.85.2 / React 19.2 / Hermes v1）
