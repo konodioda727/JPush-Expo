@@ -56,18 +56,22 @@ describe('native iOS config mods', () => {
     expect(entitlements['aps-environment']).toBe('production');
   });
 
-  it('does not overwrite an existing aps-environment entitlement', async () => {
+  it('updates existing aps-environment while preserving other entitlements', async () => {
     const projectRoot = createProjectRoot();
 
     writeEntitlementsPlist(projectRoot, {
       'aps-environment': 'development',
+      'com.apple.developer.associated-domains': ['applinks:example.com'],
     });
 
     await compileIosMods(projectRoot, { apsForProduction: true });
 
     const entitlements = readEntitlementsPlist(projectRoot);
 
-    expect(entitlements['aps-environment']).toBe('development');
+    expect(entitlements['aps-environment']).toBe('production');
+    expect(entitlements['com.apple.developer.associated-domains']).toEqual([
+      'applinks:example.com',
+    ]);
   });
 
   it('keeps app entitlements idempotent across repeated compiles', async () => {

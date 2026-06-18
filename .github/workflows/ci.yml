@@ -32,13 +32,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build plugin
-        run: npm run build
+        run: pnpm run build
 
       - name: Run tests
-        run: npm test -- --runInBand
+        run: pnpm test --runInBand
 
       - name: Run lint
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Check npm package contents
         run: npm pack --dry-run

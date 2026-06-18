@@ -70,14 +70,18 @@ describe('iOS transforms', () => {
     expect(result['aps-environment']).toBe('production');
   });
 
-  it('should not overwrite aps-environment when it is already set (e.g. by expo-notifications or app.json)', () => {
-    // Expo merges disk file + app.json into modResults before our action runs,
-    // so an existing value means the user or another plugin already configured it.
+  it('should align existing aps-environment with apsForProduction without dropping other entitlements', () => {
     const result = applyIosEntitlements(
-      { 'aps-environment': 'development' },
+      {
+        'aps-environment': 'development',
+        'com.apple.developer.associated-domains': ['applinks:example.com'],
+      },
       { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: true }
     );
-    expect(result['aps-environment']).toBe('development');
+    expect(result['aps-environment']).toBe('production');
+    expect(result['com.apple.developer.associated-domains']).toEqual([
+      'applinks:example.com',
+    ]);
   });
 
   it('should merge Info.plist background modes without overwriting existing values', () => {

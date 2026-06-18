@@ -5,7 +5,6 @@
  * 支持 Expo SDK 55 / 56 和 React Native 0.83.6+
  *
  * @author MuxiStudio
- * @version 1.3.0
  * 
  * 参考文档：
  * - JPush 集成 Expo: https://juejin.cn/post/7423235127716659239
@@ -19,7 +18,7 @@
 
 import { ConfigPlugin, createRunOncePlugin } from 'expo/config-plugins';
 import packageJson from '../../package.json';
-import { JPushPluginProps, resolveProps, validateProps } from './types';
+import { JPushPluginProps, resolveProps } from './types';
 import { withIOSConfig } from './ios';
 import { withAndroidConfig } from './android';
 
@@ -62,9 +61,7 @@ const pluginVersion = packageJson.version;
  */
 const withJPush: ConfigPlugin<JPushPluginProps> = (config, props) => {
   try {
-    // 验证配置参数
-    validateProps(props);
-    const resolvedProps = resolveProps(props);
+    const resolvedProps = resolveProps(props, config.android?.package);
 
     // 应用 iOS 配置
     config = withIOSConfig(config, resolvedProps);

@@ -4,7 +4,7 @@
 
 import { ExpoConfig } from 'expo/config';
 import withJPush from '../src';
-import { validateProps } from '../src/types';
+import { resolveProps, validateProps } from '../src/types';
 
 describe('withJPush', () => {
   const mockConfig: ExpoConfig = {
@@ -22,13 +22,53 @@ describe('withJPush', () => {
     }).toThrow('[MX_JPush_Expo] appKey 是必填项');
   });
 
-  it('should throw error when channel is missing', () => {
-    expect(() => {
-      validateProps({
+  it('should default channel when it is missing', () => {
+    const resolved = resolveProps({
+      appKey: 'test',
+      packageName: 'com.example.test',
+    });
+
+    expect(resolved.channel).toBe('developer-default');
+  });
+
+  it('should infer packageName from expo android package', () => {
+    const resolved = resolveProps(
+      {
         appKey: 'test',
+        channel: 'test-channel',
+      },
+      'com.example.fromexpo'
+    );
+
+    expect(resolved.packageName).toBe('com.example.fromexpo');
+  });
+
+  it('should throw error when packageName cannot be resolved', () => {
+    expect(() => {
+      resolveProps({
+        appKey: 'test',
+      });
+    }).toThrow('[MX_JPush_Expo] packageName 是必填项');
+  });
+
+  it('should throw error for invalid channel type', () => {
+    expect(() => {
+      resolveProps({
+        appKey: 'test-app-key',
+        channel: 123 as any,
         packageName: 'com.example.test',
-      } as any);
-    }).toThrow('[MX_JPush_Expo] channel 是必填项');
+      });
+    }).toThrow('[MX_JPush_Expo] channel 必须是字符串');
+  });
+
+  it('should throw error for invalid packageName type', () => {
+    expect(() => {
+      resolveProps({
+        appKey: 'test-app-key',
+        channel: 'test-channel',
+        packageName: 123 as any,
+      });
+    }).toThrow('[MX_JPush_Expo] packageName 必须是字符串');
   });
 
   it('should accept valid configuration', () => {
@@ -49,6 +89,22 @@ describe('withJPush', () => {
       packageName: 'com.example.test',
       apsForProduction: false,
     });
+
+    expect(result).toBeDefined();
+  });
+
+  it('should accept config with only appKey when android.package exists', () => {
+    const result = withJPush(
+      {
+        ...mockConfig,
+        android: {
+          package: 'com.example.fromconfig',
+        },
+      },
+      {
+        appKey: 'test-app-key',
+      }
+    );
 
     expect(result).toBeDefined();
   });
