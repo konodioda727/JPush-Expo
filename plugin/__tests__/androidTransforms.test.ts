@@ -13,6 +13,8 @@ const readFixture = (fixturePath: string): string =>
 const TEST_APP_KEY = 'demo-app-key';
 const TEST_CHANNEL = 'demo-channel';
 const TEST_PACKAGE_NAME = 'com.demo.app';
+const gradleStringLiteral = (value: string): string =>
+  (JSON.stringify(value) ?? '""').replace(/\$/g, '\\$');
 
 describe('Android transforms', () => {
   it('should inject app/build.gradle for enabled vendors and remain idempotent', () => {
@@ -63,15 +65,18 @@ describe('Android transforms', () => {
     );
 
     expect(transformed).toContain(
-      `JPUSH_PKGNAME: System.getenv("JPUSH_PKGNAME") ?: (project.findProperty("JPUSH_PKGNAME") ?: ${JSON.stringify(packageName)})`
+      `JPUSH_PKGNAME: System.getenv("JPUSH_PKGNAME") ?: (project.findProperty("JPUSH_PKGNAME") ?: ${gradleStringLiteral(packageName)})`
     );
     expect(transformed).toContain(
-      `JPUSH_APPKEY: System.getenv("JPUSH_APP_KEY") ?: (project.findProperty("JPUSH_APP_KEY") ?: ${JSON.stringify(appKey)})`
+      `JPUSH_APPKEY: System.getenv("JPUSH_APP_KEY") ?: (project.findProperty("JPUSH_APP_KEY") ?: ${gradleStringLiteral(appKey)})`
     );
     expect(transformed).toContain(
-      `JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: ${JSON.stringify(channel)})`
+      `JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: ${gradleStringLiteral(channel)})`
     );
     expect(transformed).not.toContain('\nprintln "PWNED"');
+    expect(transformed.replace(/\\\$\{project\.rootDir\}/g, '')).not.toContain(
+      '${project.rootDir}'
+    );
   });
 
   it('should remove vendor-only app/build.gradle sections when vendors are disabled', () => {

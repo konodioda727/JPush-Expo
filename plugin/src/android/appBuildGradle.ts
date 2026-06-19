@@ -44,7 +44,8 @@ type AndroidBuildGradleConfigInput = {
 const gradleEnv = (key: string, fallback = '""'): string =>
   `System.getenv("${key}") ?: (project.findProperty("${key}") ?: ${fallback})`;
 
-const gradleStringLiteral = (value: string): string => JSON.stringify(value) ?? '""';
+const gradleStringLiteral = (value: string): string =>
+  (JSON.stringify(value) ?? '""').replace(/\$/g, '\\$');
 
 function removeLegacyGeneratedSections(contents: string, tags: string[]): string {
   return tags.reduce((currentContents, tag) => {
