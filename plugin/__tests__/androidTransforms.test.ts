@@ -47,6 +47,33 @@ describe('Android transforms', () => {
     expect(transformed).toContain(`apply plugin: 'com.huawei.agconnect'`);
     expect(repeated).toBe(transformed);
   });
+
+  it('should escape app/build.gradle JPush fallback string literals', () => {
+    const fixture = readFixture('android/app-build.gradle.fixture');
+    const packageName = 'com.demo."pkg\\${project.rootDir}';
+    const appKey = 'demo" )\nprintln "PWNED"\n// \\ ${project.rootDir}';
+    const channel = 'demo-channel"\\\n${project.rootDir}';
+
+    const transformed = applyAndroidAppBuildGradle(
+      fixture,
+      undefined,
+      packageName,
+      appKey,
+      channel
+    );
+
+    expect(transformed).toContain(
+      `JPUSH_PKGNAME: System.getenv("JPUSH_PKGNAME") ?: (project.findProperty("JPUSH_PKGNAME") ?: ${JSON.stringify(packageName)})`
+    );
+    expect(transformed).toContain(
+      `JPUSH_APPKEY: System.getenv("JPUSH_APP_KEY") ?: (project.findProperty("JPUSH_APP_KEY") ?: ${JSON.stringify(appKey)})`
+    );
+    expect(transformed).toContain(
+      `JPUSH_CHANNEL: System.getenv("JPUSH_CHANNEL") ?: (project.findProperty("JPUSH_CHANNEL") ?: ${JSON.stringify(channel)})`
+    );
+    expect(transformed).not.toContain('\nprintln "PWNED"');
+  });
+
   it('should remove vendor-only app/build.gradle sections when vendors are disabled', () => {
     const fixture = readFixture('android/app-build.gradle.fixture');
 
