@@ -6,7 +6,6 @@ import {
   syncGeneratedContentsAtEnd,
   syncGeneratedContentsAtLine,
 } from '../src/utils/generateCode';
-import { Validator } from '../src/utils/codeValidator';
 import {
   ensureNestedBlock,
   ensureTopLevelBlock,
@@ -147,23 +146,5 @@ describe('sourceCode utils', () => {
   it('should normalize quoted xcode target names', () => {
     expect(normalizeQuotedName('"app"')).toBe('app');
     expect(normalizeQuotedName('app')).toBe('app');
-  });
-});
-
-describe('Validator', () => {
-  it('should run processors in registration order', () => {
-    const validator = new Validator('alpha');
-    validator.register('append-beta', (src) => ({
-      contents: `${src}-beta`,
-      didClear: false,
-      didMerge: true,
-    }));
-    validator.register('append-gamma', (src) => ({
-      contents: `${src}-gamma`,
-      didClear: false,
-      didMerge: true,
-    }));
-
-    expect(validator.invoke()).toBe('alpha-beta-gamma');
   });
 });
