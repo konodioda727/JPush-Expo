@@ -13,6 +13,11 @@ const readFixture = (fixturePath: string): string =>
 const TEST_APP_KEY = 'demo-app-key';
 const TEST_CHANNEL = 'demo-channel';
 const TEST_PACKAGE_NAME = 'com.demo.app';
+const TEST_ANDROID_BUILD_GRADLE_CONFIG = {
+  appKey: TEST_APP_KEY,
+  channel: TEST_CHANNEL,
+  packageName: TEST_PACKAGE_NAME,
+};
 
 describe('Android transforms', () => {
   it('should inject app/build.gradle for enabled vendors and remain idempotent', () => {
@@ -25,17 +30,17 @@ describe('Android transforms', () => {
     const fixture = readFixture('android/app-build.gradle.fixture');
     const transformed = applyAndroidAppBuildGradle(
       fixture,
-      vendorChannels,
-      TEST_PACKAGE_NAME,
-      TEST_APP_KEY,
-      TEST_CHANNEL
+      {
+        ...TEST_ANDROID_BUILD_GRADLE_CONFIG,
+        vendorChannels,
+      }
     );
     const repeated = applyAndroidAppBuildGradle(
       transformed,
-      vendorChannels,
-      TEST_PACKAGE_NAME,
-      TEST_APP_KEY,
-      TEST_CHANNEL
+      {
+        ...TEST_ANDROID_BUILD_GRADLE_CONFIG,
+        vendorChannels,
+      }
     );
 
     expect(transformed).toContain('defaultConfig {');
@@ -57,18 +62,15 @@ describe('Android transforms', () => {
     };
     const enabled = applyAndroidAppBuildGradle(
       fixture,
-      vendorConfig,
-      TEST_PACKAGE_NAME,
-      TEST_APP_KEY,
-      TEST_CHANNEL
+      {
+        ...TEST_ANDROID_BUILD_GRADLE_CONFIG,
+        vendorChannels: vendorConfig,
+      }
     );
 
     const disabled = applyAndroidAppBuildGradle(
       enabled,
-      undefined,
-      TEST_PACKAGE_NAME,
-      TEST_APP_KEY,
-      TEST_CHANNEL
+      TEST_ANDROID_BUILD_GRADLE_CONFIG
     );
 
     expect(disabled).toContain(`implementation project(':jpush-react-native')`);
@@ -121,10 +123,7 @@ describe('Android transforms', () => {
 
     const upgraded = applyAndroidAppBuildGradle(
       withLegacyFileTree,
-      undefined,
-      TEST_PACKAGE_NAME,
-      TEST_APP_KEY,
-      TEST_CHANNEL
+      TEST_ANDROID_BUILD_GRADLE_CONFIG
     );
 
     expect(upgraded).not.toContain('@generated begin jpush-ndk-config');
