@@ -39,6 +39,9 @@ type AndroidBuildGradleConfig = Pick<
 const gradleEnv = (key: string, fallback = '""'): string =>
   `System.getenv("${key}") ?: (project.findProperty("${key}") ?: ${fallback})`;
 
+const gradleStringLiteral = (value: string): string =>
+  (JSON.stringify(value) ?? '""').replace(/\$/g, '\\$');
+
 function removeLegacyGeneratedSections(contents: string, tags: string[]): string {
   return tags.reduce((currentContents, tag) => {
     return removeGeneratedContents(currentContents, tag) ?? currentContents;
@@ -102,9 +105,9 @@ function getManifestPlaceholders(
   indent: string
 ): string {
   const placeholders: string[] = [
-    `JPUSH_PKGNAME: ${gradleEnv('JPUSH_PKGNAME', `"${packageName}"`)}`,
-    `JPUSH_APPKEY: ${gradleEnv('JPUSH_APP_KEY', `"${appKey}"`)}`,
-    `JPUSH_CHANNEL: ${gradleEnv('JPUSH_CHANNEL', `"${channel}"`)}`,
+    `JPUSH_PKGNAME: ${gradleEnv('JPUSH_PKGNAME', gradleStringLiteral(packageName))}`,
+    `JPUSH_APPKEY: ${gradleEnv('JPUSH_APP_KEY', gradleStringLiteral(appKey))}`,
+    `JPUSH_CHANNEL: ${gradleEnv('JPUSH_CHANNEL', gradleStringLiteral(channel))}`,
   ];
 
   if (isVendorChannelEnabled(vendorChannels, 'meizu')) {
