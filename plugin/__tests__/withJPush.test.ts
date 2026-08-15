@@ -4,7 +4,11 @@
 
 import { ExpoConfig } from 'expo/config';
 import withJPush from '../src';
-import { resolveProps, validateProps } from '../src/types';
+import {
+  isVendorChannelEnabled,
+  resolveProps,
+  validateProps,
+} from '../src/types';
 
 describe('withJPush', () => {
   const mockConfig: ExpoConfig = {
@@ -250,5 +254,26 @@ describe('withJPush', () => {
         },
       });
     }).not.toThrow();
+  });
+
+  it('should resolve vendor channel activation consistently', () => {
+    expect(
+      isVendorChannelEnabled({ huawei: { enabled: false } }, 'huawei')
+    ).toBe(false);
+    expect(
+      isVendorChannelEnabled({ huawei: { enabled: true } }, 'huawei')
+    ).toBe(true);
+    expect(
+      isVendorChannelEnabled(
+        {
+          xiaomi: {
+            appId: 'xiaomi-app-id',
+            appKey: 'xiaomi-app-key',
+            enabled: false,
+          } as any,
+        },
+        'xiaomi'
+      )
+    ).toBe(true);
   });
 });

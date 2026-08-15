@@ -5,7 +5,11 @@
 
 import { ExpoConfig } from 'expo/config';
 import { withAppBuildGradle } from 'expo/config-plugins';
-import { ResolvedJPushPluginProps, VendorChannelConfig } from '../types';
+import {
+  isVendorChannelEnabled,
+  ResolvedJPushPluginProps,
+  VendorChannelConfig,
+} from '../types';
 import {
   removeGeneratedContents,
   replaceGeneratedContentsAtLine,
@@ -27,19 +31,10 @@ const LEGACY_DEFAULT_CONFIG_TAGS = [
 ];
 const LEGACY_DEPENDENCY_TAGS = ['jpush-libs-filetree'];
 
-type ResolvedAndroidBuildGradleConfig = {
-  appKey: string;
-  channel: string;
-  packageName: string;
-  vendorChannels?: VendorChannelConfig;
-};
-
-type AndroidBuildGradleConfigInput = {
-  packageName?: string;
-  appKey?: string;
-  channel?: string;
-  vendorChannels?: VendorChannelConfig;
-};
+type AndroidBuildGradleConfig = Pick<
+  ResolvedJPushPluginProps,
+  'packageName' | 'appKey' | 'channel' | 'vendorChannels'
+>;
 
 const gradleEnv = (key: string, fallback = '""'): string =>
   `System.getenv("${key}") ?: (project.findProperty("${key}") ?: ${fallback})`;
@@ -51,20 +46,6 @@ function removeLegacyGeneratedSections(contents: string, tags: string[]): string
   return tags.reduce((currentContents, tag) => {
     return removeGeneratedContents(currentContents, tag) ?? currentContents;
   }, contents);
-}
-
-function getResolvedConfig({
-  packageName = '',
-  appKey = '',
-  channel = '',
-  vendorChannels,
-}: AndroidBuildGradleConfigInput): ResolvedAndroidBuildGradleConfig {
-  return {
-    appKey,
-    channel,
-    packageName,
-    vendorChannels,
-  };
 }
 
 function getBlockRangeOrThrow(src: string, pattern: RegExp, errorMessage: string) {
@@ -129,32 +110,32 @@ function getManifestPlaceholders(
     `JPUSH_CHANNEL: ${gradleEnv('JPUSH_CHANNEL', gradleStringLiteral(channel))}`,
   ];
 
-  if (vendorChannels?.meizu) {
+  if (isVendorChannelEnabled(vendorChannels, 'meizu')) {
     placeholders.push(`MEIZU_APPKEY: ${gradleEnv('JPUSH_MEIZU_APP_KEY')}`);
     placeholders.push(`MEIZU_APPID: ${gradleEnv('JPUSH_MEIZU_APP_ID')}`);
   }
 
-  if (vendorChannels?.xiaomi) {
+  if (isVendorChannelEnabled(vendorChannels, 'xiaomi')) {
     placeholders.push(`XIAOMI_APPID: ${gradleEnv('JPUSH_XIAOMI_APP_ID')}`);
     placeholders.push(`XIAOMI_APPKEY: ${gradleEnv('JPUSH_XIAOMI_APP_KEY')}`);
   }
 
-  if (vendorChannels?.oppo) {
+  if (isVendorChannelEnabled(vendorChannels, 'oppo')) {
     placeholders.push(`OPPO_APPKEY: ${gradleEnv('JPUSH_OPPO_APP_KEY')}`);
     placeholders.push(`OPPO_APPID: ${gradleEnv('JPUSH_OPPO_APP_ID')}`);
     placeholders.push(`OPPO_APPSECRET: ${gradleEnv('JPUSH_OPPO_APP_SECRET')}`);
   }
 
-  if (vendorChannels?.vivo) {
+  if (isVendorChannelEnabled(vendorChannels, 'vivo')) {
     placeholders.push(`VIVO_APPKEY: ${gradleEnv('JPUSH_VIVO_APP_KEY')}`);
     placeholders.push(`VIVO_APPID: ${gradleEnv('JPUSH_VIVO_APP_ID')}`);
   }
 
-  if (vendorChannels?.honor) {
+  if (isVendorChannelEnabled(vendorChannels, 'honor')) {
     placeholders.push(`HONOR_APPID: ${gradleEnv('JPUSH_HONOR_APP_ID')}`);
   }
 
-  if (vendorChannels?.nio) {
+  if (isVendorChannelEnabled(vendorChannels, 'nio')) {
     placeholders.push(`NIO_APPID: ${gradleEnv('JPUSH_NIO_APP_ID')}`);
   }
 
@@ -185,8 +166,8 @@ function getJPushDependencies(
   vendorChannels: VendorChannelConfig | undefined,
   indent: string
 ): string {
-  const isHuaweiEnabled = vendorChannels?.huawei?.enabled === true;
-  const isFcmEnabled = vendorChannels?.fcm?.enabled === true;
+  const isHuaweiEnabled = isVendorChannelEnabled(vendorChannels, 'huawei');
+  const isFcmEnabled = isVendorChannelEnabled(vendorChannels, 'fcm');
   const dependencies: string[] = [
     `implementation fileTree(include: ['*.jar','*.aar'], dir: 'libs')`,
     ``,
@@ -199,14 +180,12 @@ function getJPushDependencies(
     const hasVendorChannels =
       isHuaweiEnabled ||
       isFcmEnabled ||
-      Boolean(
-        vendorChannels.meizu ||
-          vendorChannels.vivo ||
-          vendorChannels.xiaomi ||
-          vendorChannels.oppo ||
-          vendorChannels.honor ||
-          vendorChannels.nio
-      );
+      isVendorChannelEnabled(vendorChannels, 'meizu') ||
+      isVendorChannelEnabled(vendorChannels, 'vivo') ||
+      isVendorChannelEnabled(vendorChannels, 'xiaomi') ||
+      isVendorChannelEnabled(vendorChannels, 'oppo') ||
+      isVendorChannelEnabled(vendorChannels, 'honor') ||
+      isVendorChannelEnabled(vendorChannels, 'nio');
 
     if (hasVendorChannels) {
       dependencies.push('', `// 厂商通道 SDK（JPush 5.9.0）`);
@@ -229,19 +208,19 @@ function getJPushDependencies(
       );
     }
 
-    if (vendorChannels.meizu) {
+    if (isVendorChannelEnabled(vendorChannels, 'meizu')) {
       dependencies.push(`// 魅族厂商`, `implementation 'cn.jiguang.sdk.plugin:meizu:5.9.0'`);
     }
 
-    if (vendorChannels.vivo) {
+    if (isVendorChannelEnabled(vendorChannels, 'vivo')) {
       dependencies.push(`// VIVO 厂商`, `implementation 'cn.jiguang.sdk.plugin:vivo:5.9.0'`);
     }
 
-    if (vendorChannels.xiaomi) {
+    if (isVendorChannelEnabled(vendorChannels, 'xiaomi')) {
       dependencies.push(`// 小米厂商`, `implementation 'cn.jiguang.sdk.plugin:xiaomi:5.9.0'`);
     }
 
-    if (vendorChannels.oppo) {
+    if (isVendorChannelEnabled(vendorChannels, 'oppo')) {
       dependencies.push(
         `// OPPO 厂商`,
         `implementation 'cn.jiguang.sdk.plugin:oppo:5.9.0'`,
@@ -251,11 +230,11 @@ function getJPushDependencies(
       );
     }
 
-    if (vendorChannels.honor) {
+    if (isVendorChannelEnabled(vendorChannels, 'honor')) {
       dependencies.push(`// 荣耀厂商`, `implementation 'cn.jiguang.sdk.plugin:honor:5.9.0'`);
     }
 
-    if (vendorChannels.nio) {
+    if (isVendorChannelEnabled(vendorChannels, 'nio')) {
       dependencies.push(`// 蔚来厂商`, `implementation 'cn.jiguang.sdk.plugin:nio:5.9.0'`);
     }
   }
@@ -266,8 +245,8 @@ function getJPushDependencies(
 }
 
 function getApplyPlugins(vendorChannels?: VendorChannelConfig): string {
-  const isHuaweiEnabled = vendorChannels?.huawei?.enabled === true;
-  const isFcmEnabled = vendorChannels?.fcm?.enabled === true;
+  const isHuaweiEnabled = isVendorChannelEnabled(vendorChannels, 'huawei');
+  const isFcmEnabled = isVendorChannelEnabled(vendorChannels, 'fcm');
   const plugins: string[] = [];
 
   if (isFcmEnabled) {
@@ -283,17 +262,9 @@ function getApplyPlugins(vendorChannels?: VendorChannelConfig): string {
 
 export function applyAndroidAppBuildGradle(
   contents: string,
-  vendorChannels?: VendorChannelConfig,
-  packageName?: string,
-  appKey?: string,
-  channel?: string
+  config: AndroidBuildGradleConfig
 ): string {
-  const resolvedConfig = getResolvedConfig({
-    packageName,
-    appKey,
-    channel,
-    vendorChannels,
-  });
+  const { appKey, channel, packageName, vendorChannels } = config;
 
   let nextContents = removeLegacyGeneratedSections(contents, LEGACY_DEFAULT_CONFIG_TAGS);
   nextContents = ensureNestedBlock(nextContents, /^\s*android\s*\{/, 'defaultConfig');
@@ -323,10 +294,10 @@ export function applyAndroidAppBuildGradle(
   nextContents = replaceGeneratedContentsAtLine({
     src: nextContents,
     newSrc: getManifestPlaceholders(
-      resolvedConfig.packageName,
-      resolvedConfig.appKey,
-      resolvedConfig.channel,
-      resolvedConfig.vendorChannels,
+      packageName,
+      appKey,
+      channel,
+      vendorChannels,
       defaultConfigIndent
     ),
     tag: 'jpush-manifest-placeholders',
@@ -340,7 +311,7 @@ export function applyAndroidAppBuildGradle(
   )}    `;
   nextContents = replaceGeneratedContentsAtLine({
     src: nextContents,
-    newSrc: getJPushDependencies(resolvedConfig.vendorChannels, dependenciesIndent),
+    newSrc: getJPushDependencies(vendorChannels, dependenciesIndent),
     tag: 'jpush-dependencies',
     getLineIndex: getDependenciesLine,
     offset: 1,
@@ -349,7 +320,7 @@ export function applyAndroidAppBuildGradle(
 
   nextContents = syncGeneratedContentsAtEnd({
     src: nextContents,
-    newSrc: getApplyPlugins(resolvedConfig.vendorChannels),
+    newSrc: getApplyPlugins(vendorChannels),
     tag: 'jpush-apply-plugins',
     comment: '//',
   }).contents;
@@ -362,19 +333,13 @@ export function applyAndroidAppBuildGradle(
  */
 export function withAndroidAppBuildGradle(
   config: ExpoConfig,
-  props: Pick<
-    ResolvedJPushPluginProps,
-    'packageName' | 'appKey' | 'channel' | 'vendorChannels'
-  >
+  props: AndroidBuildGradleConfig
 ): ExpoConfig {
   return withAppBuildGradle(config, (nextConfig) => {
     console.log('\n[MX_JPush_Expo] 配置 Android app/build.gradle ...');
     nextConfig.modResults.contents = applyAndroidAppBuildGradle(
       nextConfig.modResults.contents,
-      props.vendorChannels,
-      props.packageName,
-      props.appKey,
-      props.channel
+      props
     );
 
     return nextConfig;

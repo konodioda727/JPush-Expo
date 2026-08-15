@@ -68,6 +68,17 @@ export interface VendorChannelConfig {
   };
 }
 
+export function isVendorChannelEnabled(
+  vendorChannels: VendorChannelConfig | undefined,
+  key: keyof VendorChannelConfig
+): boolean {
+  if (key === 'huawei' || key === 'fcm') {
+    return vendorChannels?.[key]?.enabled === true;
+  }
+
+  return vendorChannels?.[key] !== undefined;
+}
+
 /**
  * JPush 插件配置参数
  */
