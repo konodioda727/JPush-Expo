@@ -357,7 +357,6 @@ mx-jpush-expo/
 │   │   │   ├── settingsGradle.ts
 │   │   │   └── gradleProperties.ts
 │   │   └── utils/
-│   │       ├── codeValidator.ts
 │   │       ├── generateCode.ts
 │   │       └── sourceCode.ts
 │   ├── __tests__/

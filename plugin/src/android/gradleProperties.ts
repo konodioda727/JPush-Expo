@@ -5,7 +5,11 @@
 
 import { ExpoConfig } from 'expo/config';
 import { withGradleProperties } from 'expo/config-plugins';
-import { ResolvedJPushPluginProps, VendorChannelConfig } from '../types';
+import {
+  isVendorChannelEnabled,
+  ResolvedJPushPluginProps,
+  VendorChannelConfig,
+} from '../types';
 
 type GradleProperty =
   | {
@@ -25,7 +29,7 @@ export function applyAndroidGradleProperties(
   properties: GradleProperty[],
   vendorChannels?: VendorChannelConfig
 ): GradleProperty[] {
-  if (!vendorChannels?.huawei?.enabled) {
+  if (!isVendorChannelEnabled(vendorChannels, 'huawei')) {
     return properties;
   }
 

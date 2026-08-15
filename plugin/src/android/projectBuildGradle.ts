@@ -6,7 +6,7 @@
 import { ExpoConfig } from 'expo/config';
 import { withProjectBuildGradle } from 'expo/config-plugins';
 
-import { VendorChannelConfig } from '../types';
+import { isVendorChannelEnabled, VendorChannelConfig } from '../types';
 import { removeGeneratedContents, syncGeneratedContentsAtLine } from '../utils/generateCode';
 import { ensureTopLevelBlock, ensureNestedBlock, findNestedBlockRange } from '../utils/sourceCode';
 
@@ -21,30 +21,14 @@ const LEGACY_PROJECT_BUILD_TAGS = [
   'jpush-honor-maven-allprojects',
 ];
 
-function getProjectVendorFlags(
-  vendorChannels?: VendorChannelConfig
-): Record<string, boolean> {
-  if (!vendorChannels) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    Object.entries(vendorChannels).map(([key, value]) => [
-      key,
-      Boolean(value?.enabled || value?.appId || value?.appKey),
-    ])
-  );
-}
-
 function getBuildscriptRepositories(vendorChannels?: VendorChannelConfig): string {
-  const flags = getProjectVendorFlags(vendorChannels);
   const repositories: string[] = [];
 
-  if (flags.huawei) {
+  if (isVendorChannelEnabled(vendorChannels, 'huawei')) {
     repositories.push(`maven { url 'https://developer.huawei.com/repo/' }`);
   }
 
-  if (flags.honor) {
+  if (isVendorChannelEnabled(vendorChannels, 'honor')) {
     repositories.push(`maven { url 'https://developer.hihonor.com/repo' }`);
   }
 
@@ -55,8 +39,8 @@ function getBuildscriptRepositories(vendorChannels?: VendorChannelConfig): strin
  * 获取厂商通道开启标记
  */
 const getVendorClasspaths = (vendorChannels?: VendorChannelConfig): string => {
-  const isHuaweiEnabled = vendorChannels?.huawei?.enabled === true;
-  const isFcmEnabled = vendorChannels?.fcm?.enabled === true;
+  const isHuaweiEnabled = isVendorChannelEnabled(vendorChannels, 'huawei');
+  const isFcmEnabled = isVendorChannelEnabled(vendorChannels, 'fcm');
   const classpaths: string[] = [];
 
   if (isFcmEnabled) {
@@ -76,14 +60,13 @@ const getVendorClasspaths = (vendorChannels?: VendorChannelConfig): string => {
  * 生成 allprojects repositories 仓库依赖
  */
 const getAllprojectsRepositories = (vendorChannels?: VendorChannelConfig): string => {
-  const flags = getProjectVendorFlags(vendorChannels);
   const repositories: string[] = [];
 
-  if (flags.huawei) {
+  if (isVendorChannelEnabled(vendorChannels, 'huawei')) {
     repositories.push(`maven { url 'https://developer.huawei.com/repo/' }`);
   }
 
-  if (flags.honor) {
+  if (isVendorChannelEnabled(vendorChannels, 'honor')) {
     repositories.push(`maven { url 'https://developer.hihonor.com/repo' }`);
   }
 
