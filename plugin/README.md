@@ -44,7 +44,7 @@ plugin/
 ### iOS 模块
 - `infoPlist.ts` 合并 `UIBackgroundModes` 并写入 JPush 配置。
 - `entitlements.ts` 根据 `apsForProduction` 写入 APNs `aps-environment`。
-- `appDelegate.ts` 向 Swift `AppDelegate` 注入初始化、通知方法与 delegate extension。
+- `appDelegate.ts` 默认向 Swift `AppDelegate` 注入启动初始化，并始终保留通知方法与 delegate extension；`autoRegisterOnLaunch: false` 时会移除启动初始化区段。
 - `bridgingHeader.ts` 仅对 application target 配置 Bridging Header，并自动创建/补全头文件。
 
 ### 通用工具
