@@ -61,13 +61,11 @@ describe('Android transforms', () => {
     const appKey = 'demo" )\nprintln "PWNED"\n// \\ ${project.rootDir}';
     const channel = 'demo-channel"\\\n${project.rootDir}';
 
-    const transformed = applyAndroidAppBuildGradle(
-      fixture,
-      undefined,
+    const transformed = applyAndroidAppBuildGradle(fixture, {
       packageName,
       appKey,
-      channel
-    );
+      channel,
+    });
 
     expect(transformed).toContain(
       `JPUSH_PKGNAME: System.getenv("JPUSH_PKGNAME") ?: (project.findProperty("JPUSH_PKGNAME") ?: ${gradleStringLiteral(packageName)})`
