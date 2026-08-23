@@ -17,6 +17,12 @@ describe('withJPush', () => {
     version: '1.0.0',
   };
 
+  it('should throw error when plugin configuration is missing', () => {
+    expect(() => validateProps(undefined)).toThrow(
+      '[MX_JPush_Expo] 插件配置不能为空'
+    );
+  });
+
   it('should throw error when appKey is missing', () => {
     expect(() => {
       validateProps({
@@ -33,6 +39,31 @@ describe('withJPush', () => {
     });
 
     expect(resolved.channel).toBe('developer-default');
+  });
+
+  it('should enable launch-time iOS registration by default', () => {
+    const resolved = resolveProps({
+      appKey: 'test',
+      packageName: 'com.example.test',
+    });
+
+    expect(resolved.autoRegisterOnLaunch).toBe(true);
+  });
+
+  it('should preserve an explicit iOS launch registration setting', () => {
+    const enabled = resolveProps({
+      appKey: 'test',
+      packageName: 'com.example.test',
+      autoRegisterOnLaunch: true,
+    });
+    const deferred = resolveProps({
+      appKey: 'test',
+      packageName: 'com.example.test',
+      autoRegisterOnLaunch: false,
+    });
+
+    expect(enabled.autoRegisterOnLaunch).toBe(true);
+    expect(deferred.autoRegisterOnLaunch).toBe(false);
   });
 
   it('should infer packageName from expo android package', () => {
@@ -122,6 +153,17 @@ describe('withJPush', () => {
         apsForProduction: 'invalid' as any,
       });
     }).toThrow('[MX_JPush_Expo] apsForProduction 必须是布尔值');
+  });
+
+  it('should throw error for invalid autoRegisterOnLaunch type', () => {
+    expect(() => {
+      validateProps({
+        appKey: 'test-app-key',
+        channel: 'test-channel',
+        packageName: 'com.example.test',
+        autoRegisterOnLaunch: 'invalid',
+      } as any);
+    }).toThrow('[MX_JPush_Expo] autoRegisterOnLaunch 必须是布尔值');
   });
 
   it('should require vendorChannels.huawei.enabled when Huawei config is present', () => {
