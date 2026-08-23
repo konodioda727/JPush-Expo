@@ -10,8 +10,8 @@
 
 ## 环境要求
 
-- Node.js >= 20.19.4
-- Expo SDK 56 作为仓库开发基线
+- Node.js >= 20.19.4（包引擎要求）；SDK 57 开发与 smoke 使用 Node.js 24.15.0，且不得低于 22.13.0
+- Expo SDK 57.0.15 作为仓库开发基线
 - 推荐 pnpm 10 或 npm 10+
 - TypeScript >= 5.0
 
@@ -84,8 +84,9 @@ pnpm run lint
 # 检查传递依赖安全基线
 pnpm audit --audit-level moderate
 
-# 验证 Expo 56 真实 prebuild 输出
+# 验证 Expo 56 / 57 真实 prebuild 输出
 pnpm run test:prebuild:expo56
+pnpm run test:prebuild:expo57
 ```
 
 当前主线的测试重点：
@@ -213,20 +214,24 @@ describe('withMyPlugin', () => {
 });
 ```
 
-### Expo 56 prebuild smoke
+### Expo 56 / 57 prebuild smoke
 
-仓库提供 `pnpm run test:prebuild:expo56`，用于验证发布包入口和真实 Expo 56 模板：
+仓库提供 `pnpm run test:prebuild:expo56` 与 `pnpm run test:prebuild:expo57`，分别验证真实 Expo 56 / 57 模板：
 
 - 先构建插件并用 `npm pack` 生成本地 tarball
-- 在临时目录创建最小 Expo 56 应用
+- 在临时目录创建对应 SDK 的最小应用；fixture 固定为 Expo 56.0.11 / React Native 0.85.2，以及 Expo 57.0.15 / React Native 0.86.2
 - 安装 `mx-jpush-expo` tarball、`jpush-react-native@3.1.9` 和 `jcore-react-native@2.3.0`
+- SDK 57 fixture 在 prebuild 前运行 `expo-doctor`
 - 执行 `expo prebuild --clean --no-install`
 - 断言 iOS / Android 关键原生文件包含 JPush 注入结果
+
+这些 smoke 只覆盖配置插件的生成结果，不覆盖真机推送、原生 release build 或 JPush 服务端投递。
 
 本地调试时可保留临时目录：
 
 ```bash
 MX_JPUSH_KEEP_SMOKE_DIR=1 pnpm run test:prebuild:expo56
+MX_JPUSH_KEEP_SMOKE_DIR=1 pnpm run test:prebuild:expo57
 ```
 
 ### 集成测试
@@ -309,6 +314,7 @@ pnpm test --runInBand
 pnpm run lint
 pnpm audit --audit-level moderate
 pnpm run test:prebuild:expo56
+pnpm run test:prebuild:expo57
 ```
 
 ### 4. 检查发布包
