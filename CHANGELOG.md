@@ -1,6 +1,11 @@
 # Changelog
 
 历史版本更新从 README 中拆出，便于首页专注接入说明与使用导航。
+## v1.4.0 (2026-08-29)
+
+- 支持 Expo SDK 57（Expo 57.0.18 / React Native 0.86.3 / React 19.2.3），并保留 Expo SDK 56 的 prebuild smoke 覆盖
+- iOS 新增 `autoRegisterOnLaunch` 配置；设为 `false` 时，可在用户授权后通过 `JPush.init(...)` 延后完成 JPush 与 APNs 注册
+
 ## v1.3.1 (2026-06-18)
 
 - 重新发布 v1.3.0 整合优化内容到新的 npm 版本，避免覆盖已存在的 `mx-jpush-expo@1.3.0`
