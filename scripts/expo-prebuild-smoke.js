@@ -15,9 +15,9 @@ const SDK_FIXTURES = Object.freeze({
   }),
   '57': Object.freeze({
     domWebview: '57.0.1',
-    expo: '57.0.15',
+    expo: '57.0.18',
     react: '19.2.3',
-    reactNative: '0.86.2',
+    reactNative: '0.86.3',
   }),
 });
 

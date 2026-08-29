@@ -241,7 +241,7 @@ describe('withMyPlugin', () => {
 仓库提供 `pnpm run test:prebuild:expo56` 与 `pnpm run test:prebuild:expo57`，分别验证真实 Expo 56 / 57 模板：
 
 - 先构建插件并用 `npm pack` 生成本地 tarball
-- 在临时目录创建对应 SDK 的最小应用；fixture 固定为 Expo 56.0.11 / React Native 0.85.2，以及 Expo 57.0.15 / React Native 0.86.2
+- 在临时目录创建对应 SDK 的最小应用；fixture 固定为 Expo 56.0.11 / React Native 0.85.2，以及 Expo 57.0.18 / React Native 0.86.3
 - 安装 `mx-jpush-expo` tarball、`jpush-react-native@3.1.9` 和 `jcore-react-native@2.3.0`
 - SDK 57 fixture 在 prebuild 前运行 `expo-doctor`
 - 执行 `expo prebuild --clean --no-install`
@@ -318,9 +318,7 @@ git pull --ff-only
 
 - 先通过拆分 commit / 堆叠 PR 合入功能改动
 - 在 release PR 中统一更新：
-  - `package.json`
-  - `plugin/src/index.ts`
-  - `app.plugin.js`
+  - `package.json`（包版本与 `createRunOncePlugin` 共用此单一来源）
   - `CHANGELOG.md`
 
 ### 2. 构建
@@ -361,7 +359,7 @@ git tag --list 'v*' --sort=-v:refname | head
 
 ```bash
 npm view mx-jpush-expo version dist-tags --json
-gh release view v1.3.1
+gh release view v1.4.0
 ```
 
 ## 常见问题
