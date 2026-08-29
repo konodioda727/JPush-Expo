@@ -96,6 +96,28 @@ pnpm run test:prebuild:expo56
 - `iosTransforms.test.ts`：`Info.plist`、`AppDelegate`、Bridging Header 的纯转换测试
 - `nativeAndroidMods.test.ts` / `nativeIos*.test.ts`：fixture 项目上的原生回归测试，覆盖真实 `compileModsAsync` 路径
 
+### Deferred iOS registration regression coverage
+
+Changes to `autoRegisterOnLaunch` must keep the following cases covered:
+
+- omitted and explicit `true` preserve the existing launch-time output
+- explicit `false` removes only the generated startup registration block
+- invalid non-boolean values fail during plugin configuration
+- non-clean `true -> false -> true` transitions remove and restore the block
+  without duplicates
+- repeated native mod compiles remain idempotent
+- deferred mode preserves `Info.plist`, entitlements, Bridging Header,
+  notification delegates, and APNs token callbacks
+
+Run the focused regression suites with:
+
+```bash
+pnpm test --runInBand \
+  plugin/__tests__/withJPush.test.ts \
+  plugin/__tests__/iosTransforms.test.ts \
+  plugin/__tests__/nativeIosAppDelegate.test.ts
+```
+
 ### 4. 清理
 
 ```bash

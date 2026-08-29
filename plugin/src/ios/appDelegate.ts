@@ -10,6 +10,16 @@ import {
   syncGeneratedContentsAtEnd,
 } from '../utils/generateCode';
 import { findBlockRange, findLastLineIndex, findLineIndex } from '../utils/sourceCode';
+import { ResolvedJPushPluginProps } from '../types';
+
+type IosAppDelegateConfig = Pick<
+  ResolvedJPushPluginProps,
+  'autoRegisterOnLaunch'
+>;
+
+const DEFAULT_IOS_APP_DELEGATE_CONFIG: IosAppDelegateConfig = {
+  autoRegisterOnLaunch: true,
+};
 
 const DID_FINISH_LAUNCHING_PATTERN =
   /\bdidFinishLaunchingWithOptions\b/;
@@ -54,7 +64,10 @@ function getAppDelegateClassClosingLine(src: string): number {
   return classRange.endLine;
 }
 
-export function applyIosAppDelegate(contents: string): string {
+export function applyIosAppDelegate(
+  contents: string,
+  config: IosAppDelegateConfig = DEFAULT_IOS_APP_DELEGATE_CONFIG
+): string {
   let nextContents = replaceGeneratedContentsAtLine({
     src: contents,
     newSrc: 'import UserNotifications',
@@ -66,7 +79,7 @@ export function applyIosAppDelegate(contents: string): string {
 
   nextContents = replaceGeneratedContentsAtLine({
     src: nextContents,
-    newSrc: getJPushInitialization(),
+    newSrc: config.autoRegisterOnLaunch ? getJPushInitialization() : '',
     tag: 'jpush-swift-initialization',
     getLineIndex: getDidFinishLaunchingInsertionLine,
     offset: 0,
@@ -95,10 +108,16 @@ export function applyIosAppDelegate(contents: string): string {
 /**
  * 配置 iOS AppDelegate
  */
-export const withIosAppDelegate: ConfigPlugin = (config) =>
+export const withIosAppDelegate: ConfigPlugin<IosAppDelegateConfig> = (
+  config,
+  props
+) =>
   withAppDelegate(config, (config) => {
     console.log('\n[MX_JPush_Expo] 配置 iOS AppDelegate ...');
-    config.modResults.contents = applyIosAppDelegate(config.modResults.contents);
+    config.modResults.contents = applyIosAppDelegate(
+      config.modResults.contents,
+      props
+    );
     return config;
   });
 

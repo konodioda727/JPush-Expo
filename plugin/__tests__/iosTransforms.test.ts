@@ -57,7 +57,7 @@ describe('iOS transforms', () => {
   it('should set aps-environment to development when apsForProduction is false', () => {
     const result = applyIosEntitlements(
       {},
-      { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: false }
+      { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: false, autoRegisterOnLaunch: true }
     );
     expect(result['aps-environment']).toBe('development');
   });
@@ -65,7 +65,7 @@ describe('iOS transforms', () => {
   it('should set aps-environment to production when apsForProduction is true', () => {
     const result = applyIosEntitlements(
       {},
-      { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: true }
+      { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: true, autoRegisterOnLaunch: true }
     );
     expect(result['aps-environment']).toBe('production');
   });
@@ -76,7 +76,7 @@ describe('iOS transforms', () => {
         'aps-environment': 'development',
         'com.apple.developer.associated-domains': ['applinks:example.com'],
       },
-      { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: true }
+      { appKey: 'k', channel: 'c', packageName: 'com.test', apsForProduction: true, autoRegisterOnLaunch: true }
     );
     expect(result['aps-environment']).toBe('production');
     expect(result['com.apple.developer.associated-domains']).toEqual([
@@ -101,7 +101,7 @@ describe('iOS transforms', () => {
         UIBackgroundModes: ['processing'],
         CFBundleDisplayName: 'Demo',
       },
-      { appKey: 'demo-app-key', channel: 'demo-channel', packageName: 'com.demo.app', apsForProduction: true }
+      { appKey: 'demo-app-key', channel: 'demo-channel', packageName: 'com.demo.app', apsForProduction: true, autoRegisterOnLaunch: true }
     );
 
     expect(infoPlist.UIBackgroundModes).toEqual([
@@ -125,6 +125,100 @@ describe('iOS transforms', () => {
     expect(transformed).toContain('didRegisterForRemoteNotificationsWithDeviceToken');
     expect(transformed).toContain('extension AppDelegate: JPUSHRegisterDelegate');
     expect(repeated).toBe(transformed);
+  });
+
+  it('should keep the default AppDelegate output when launch registration is explicitly enabled', () => {
+    const fixture = readFixture('ios/AppDelegate.swift.fixture');
+    const defaultTransform = applyIosAppDelegate(fixture);
+    const explicitlyEnabled = applyIosAppDelegate(fixture, {
+      autoRegisterOnLaunch: true,
+    });
+
+    expect(explicitlyEnabled).toBe(defaultTransform);
+  });
+
+  it('should remove and restore only the launch registration block on non-clean transforms', () => {
+    const fixture = readFixture('ios/AppDelegate.swift.fixture');
+    const registered = applyIosAppDelegate(fixture);
+    const deferred = applyIosAppDelegate(registered, {
+      autoRegisterOnLaunch: false,
+    });
+    const repeatedDeferred = applyIosAppDelegate(deferred, {
+      autoRegisterOnLaunch: false,
+    });
+
+    expect(deferred).toContain('import UserNotifications');
+    expect(deferred).toContain(
+      'didRegisterForRemoteNotificationsWithDeviceToken'
+    );
+    expect(deferred).toContain('extension AppDelegate: JPUSHRegisterDelegate');
+    expect(deferred).not.toContain(
+      'JPUSHService.register(forRemoteNotificationConfig: entity, delegate: self)'
+    );
+    expect(deferred).not.toContain('JPUSHService.setDebugMode()');
+    expect(deferred).not.toContain(
+      'JPUSHService.setup(withOption: launchOptions'
+    );
+    expect(deferred).not.toContain(
+      'NotificationCenter.default.addObserver('
+    );
+    expect(deferred).not.toContain(
+      '@generated begin jpush-swift-initialization'
+    );
+    expect(repeatedDeferred).toBe(deferred);
+
+    const restored = applyIosAppDelegate(deferred, {
+      autoRegisterOnLaunch: true,
+    });
+    const repeatedRestored = applyIosAppDelegate(restored, {
+      autoRegisterOnLaunch: true,
+    });
+
+    expect(restored).toContain(
+      'JPUSHService.register(forRemoteNotificationConfig: entity, delegate: self)'
+    );
+    expect(restored).toContain('JPUSHService.setup(withOption: launchOptions');
+    expect(
+      restored.match(/@generated begin jpush-swift-initialization/g)
+    ).toHaveLength(1);
+    expect(repeatedRestored).toBe(restored);
+  });
+
+  it('should reject AppDelegate sources without a Swift import region', () => {
+    expect(() => applyIosAppDelegate('class AppDelegate {}')).toThrow(
+      '[MX_JPush_Expo] 未找到 Swift import 区域'
+    );
+  });
+
+  it('should reject AppDelegate sources without a launch method', () => {
+    expect(() =>
+      applyIosAppDelegate('import Expo\nclass AppDelegate {}')
+    ).toThrow('[MX_JPush_Expo] 未找到 didFinishLaunchingWithOptions 方法');
+  });
+
+  it('should reject AppDelegate sources without an AppDelegate class', () => {
+    const fixture = readFixture('ios/AppDelegate.swift.fixture').replace(
+      'public class AppDelegate',
+      'public class PushDelegate'
+    );
+
+    expect(() => applyIosAppDelegate(fixture)).toThrow(
+      '[MX_JPush_Expo] 未找到 AppDelegate 类定义'
+    );
+  });
+
+  it('should support launch methods without the standard Expo super return', () => {
+    const fixture = readFixture('ios/AppDelegate.swift.fixture').replace(
+      'return super.application(application, didFinishLaunchingWithOptions: launchOptions)',
+      'return true'
+    );
+
+    const transformed = applyIosAppDelegate(fixture);
+
+    expect(transformed).toContain('JPUSHService.setup(withOption: launchOptions');
+    expect(transformed).toContain(
+      'didRegisterForRemoteNotificationsWithDeviceToken'
+    );
   });
 
   it('should insert AppDelegate remote notification methods before the class closing brace without relying on open url anchor', () => {

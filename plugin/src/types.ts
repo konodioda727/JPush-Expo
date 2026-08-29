@@ -108,6 +108,13 @@ export interface JPushPluginProps {
   apsForProduction?: boolean;
 
   /**
+   * 是否在 iOS AppDelegate 启动阶段自动初始化 JPush 并注册 APNs（可选）
+   * 设为 false 时，由应用在用户授权后调用 jpush-react-native 的 JPush.init
+   * @default true
+   */
+  autoRegisterOnLaunch?: boolean;
+
+  /**
    * 厂商通道配置（可选）
    */
   vendorChannels?: VendorChannelConfig;
@@ -120,6 +127,7 @@ export interface ResolvedJPushPluginProps extends JPushPluginProps {
   channel: string;
   packageName: string;
   apsForProduction: boolean;
+  autoRegisterOnLaunch: boolean;
 }
 
 function validateBooleanVendorChannel(
@@ -204,6 +212,13 @@ export function validateProps(props: JPushPluginProps | undefined): asserts prop
     throw new Error('[MX_JPush_Expo] apsForProduction 必须是布尔值');
   }
 
+  if (
+    props.autoRegisterOnLaunch !== undefined &&
+    typeof props.autoRegisterOnLaunch !== 'boolean'
+  ) {
+    throw new Error('[MX_JPush_Expo] autoRegisterOnLaunch 必须是布尔值');
+  }
+
   validateVendorChannels(props.vendorChannels);
 }
 
@@ -230,5 +245,6 @@ export function resolveProps(
     channel,
     packageName,
     apsForProduction: props.apsForProduction ?? false,
+    autoRegisterOnLaunch: props.autoRegisterOnLaunch ?? true,
   };
 }

@@ -233,6 +233,45 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 - `appKey`：JPush 后台创建应用后获得的 AppKey
 - `channel`：渠道标识，默认 `developer-default`
 - `apsForProduction`：是否使用生产环境 APNs，默认 `false`（开发环境）。插件会据此在 `.entitlements` 里写入 `aps-environment: development / production`，并保留宿主已有的其他 entitlement 键
+- `autoRegisterOnLaunch`：iOS only. Defaults to `true`; set it to `false` to defer JPush setup and APNs registration until the user gives consent
+
+### Defer iOS registration until consent
+
+Set `autoRegisterOnLaunch` to `false` when your app must obtain user consent
+before initializing JPush or registering with APNs:
+
+```ts
+[
+  'mx-jpush-expo',
+  {
+    appKey: 'your-jpush-app-key',
+    channel: 'developer-default',
+    apsForProduction: false,
+    autoRegisterOnLaunch: false,
+  },
+]
+```
+
+The plugin still generates the iOS notification delegates, APNs token
+callbacks, `Info.plist`, entitlements, and Bridging Header. After consent, call
+the existing `jpush-react-native` API once from your application code:
+
+```ts
+import JPush from 'jpush-react-native';
+
+export function registerPushAfterConsent(): void {
+  JPush.init({
+    appKey: 'your-jpush-app-key',
+    channel: 'developer-default',
+    production: false,
+  });
+}
+```
+
+Keep `production` aligned with `apsForProduction`. `JPush.init` performs both
+JPush setup and APNs registration on iOS, so no additional native bridge is
+required. This option only changes iOS launch-time registration; Android
+behavior is unchanged.
 
 ### Android 配置
 
@@ -245,7 +284,7 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
 | --- | --- | --- |
 | iOS | `ios/<app>/Info.plist` | 写入 `JPUSH_*` 配置并合并 `UIBackgroundModes` |
 | iOS | `ios/<app>/<app>.entitlements` | 按 `apsForProduction` 写入 `aps-environment` 并保留其他 entitlement 键 |
-| iOS | `ios/<app>/AppDelegate.swift` | 注入 JPush 初始化、APNs 回调和代理扩展 |
+| iOS | `ios/<app>/AppDelegate.swift` | 默认注入 JPush 启动初始化，并始终保留 APNs 回调和代理扩展；延后模式会省略启动初始化 |
 | iOS | `ios/<app>/<target>-Bridging-Header.h` | 复用或创建桥接头文件，保证 import 幂等 |
 | Android | `android/app/src/main/AndroidManifest.xml` | 写入 `JPUSH_APPKEY` / `JPUSH_CHANNEL` meta-data |
 | Android | `android/app/build.gradle` | 注入依赖、`manifestPlaceholders`、`abiFilters`、厂商插件 |
@@ -267,7 +306,8 @@ JPUSH_XIAOMI_APP_KEY=your-xiaomi-app-key
   - `fetch`
   - `remote-notification`
 - `<app>.entitlements` 中存在 `aps-environment`，值跟随 `apsForProduction` 为 `development` 或 `production`
-- `AppDelegate.swift` 中存在 `JPUSHService.setup`
+- `autoRegisterOnLaunch` 省略或为 `true` 时，`AppDelegate.swift` 中存在 `JPUSHService.setup`
+- `autoRegisterOnLaunch: false` 时，`AppDelegate.swift` 不包含启动阶段的 `JPUSHService.setup` 或 APNs registration，但仍保留 APNs token callbacks 与 `JPUSHRegisterDelegate` extension
 - `AppDelegate.swift` 中的调试日志与 `JPUSHService.setDebugMode()` 会被 `#if DEBUG` 包裹，release 构建不再无条件打印
 - 如果项目使用 Swift，插件会优先复用已有 `SWIFT_OBJC_BRIDGING_HEADER`；未配置时会自动创建 `<target>-Bridging-Header.h`
 

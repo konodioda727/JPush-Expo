@@ -22,7 +22,7 @@ export function withIOSConfig(
 ): ExpoConfig {
   config = withIosInfoPlist(config, props);
   config = withIosEntitlements(config, props);
-  config = withIosAppDelegate(config);
+  config = withIosAppDelegate(config, props);
   config = withIosBridgingHeader(config);
 
   return config;
