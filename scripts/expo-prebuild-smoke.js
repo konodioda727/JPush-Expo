@@ -6,9 +6,36 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const { pathToFileURL } = require('url');
 
+const SDK_FIXTURES = Object.freeze({
+  '56': Object.freeze({
+    domWebview: '56.0.5',
+    expo: '56.0.11',
+    react: '19.2.3',
+    reactNative: '0.85.2',
+  }),
+  '57': Object.freeze({
+    domWebview: '57.0.1',
+    expo: '57.0.15',
+    react: '19.2.3',
+    reactNative: '0.86.2',
+  }),
+});
+
+const sdk = process.argv[2];
+
+if (!Object.hasOwn(SDK_FIXTURES, sdk)) {
+  throw new Error(
+    `Unsupported Expo SDK "${sdk ?? ''}". Expected one of: ${Object.keys(SDK_FIXTURES).join(', ')}`
+  );
+}
+
+const fixture = SDK_FIXTURES[sdk];
 const repoRoot = path.resolve(__dirname, '..');
-const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'mx-jpush-expo56-'));
+const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), `mx-jpush-expo${sdk}-`));
 const appRoot = path.join(tmpRoot, 'app');
+const appName = `JPush Expo ${sdk} Smoke`;
+const iosProjectName = `JPushExpo${sdk}Smoke`;
+const nativePackageName = `com.example.jpushexpo${sdk}`;
 let tarballPath;
 
 function run(command, args, options = {}) {
@@ -69,17 +96,17 @@ try {
     path.join(appRoot, 'package.json'),
     `${JSON.stringify(
       {
-        name: 'mx-jpush-expo56-smoke',
+        name: `mx-jpush-expo${sdk}-smoke`,
         version: '1.0.0',
         private: true,
         scripts: {
           prebuild: 'expo prebuild',
         },
         dependencies: {
-          '@expo/dom-webview': '56.0.5',
-          expo: '56.0.11',
-          react: '19.2.3',
-          'react-native': '0.85.2',
+          '@expo/dom-webview': fixture.domWebview,
+          expo: fixture.expo,
+          react: fixture.react,
+          'react-native': fixture.reactNative,
           'jpush-react-native': '3.1.9',
           'jcore-react-native': '2.3.0',
           'mx-jpush-expo': tarballUrl,
@@ -95,14 +122,14 @@ try {
     `${JSON.stringify(
       {
         expo: {
-          name: 'JPush Expo 56 Smoke',
-          slug: 'jpush-expo-56-smoke',
+          name: appName,
+          slug: `jpush-expo-${sdk}-smoke`,
           version: '1.0.0',
           ios: {
-            bundleIdentifier: 'com.example.jpushexpo56',
+            bundleIdentifier: nativePackageName,
           },
           android: {
-            package: 'com.example.jpushexpo56',
+            package: nativePackageName,
           },
           plugins: [
             [
@@ -137,13 +164,18 @@ try {
       "import { Text, View } from 'react-native';",
       '',
       'export default function App() {',
-      "  return <View><Text>JPush Expo 56 Smoke</Text></View>;",
+      `  return <View><Text>${appName}</Text></View>;`,
       '}',
       '',
     ].join('\n')
   );
 
   run('npm', ['install', '--no-audit', '--no-fund'], { cwd: appRoot });
+
+  if (sdk === '57') {
+    run('npx', ['expo-doctor@latest'], { cwd: appRoot });
+  }
+
   run('npm', ['exec', '--', 'expo', 'prebuild', '--clean', '--no-install'], { cwd: appRoot });
 
   const appBuildGradle = read('android/app/build.gradle');
@@ -152,7 +184,7 @@ try {
   assertContains(appBuildGradle, 'JPUSH_CHANNEL', 'android/app/build.gradle');
   assertContains(appBuildGradle, 'developer-default', 'android/app/build.gradle');
   assertContains(appBuildGradle, 'JPUSH_PKGNAME', 'android/app/build.gradle');
-  assertContains(appBuildGradle, 'com.example.jpushexpo56', 'android/app/build.gradle');
+  assertContains(appBuildGradle, nativePackageName, 'android/app/build.gradle');
   assertContains(appBuildGradle, "implementation project(':jpush-react-native')", 'android/app/build.gradle');
   assertContains(appBuildGradle, "implementation 'cn.jiguang.sdk.plugin:huawei:", 'android/app/build.gradle');
   assertContains(appBuildGradle, "implementation 'cn.jiguang.sdk.plugin:fcm:", 'android/app/build.gradle');
@@ -170,26 +202,29 @@ try {
   assertContains(projectBuildGradle, "maven { url 'https://developer.huawei.com/repo/' }", 'android/build.gradle');
   assertContains(projectBuildGradle, "classpath 'com.google.gms:google-services:4.4.0'", 'android/build.gradle');
 
-  const appDelegatePath = assertFile('ios/JPushExpo56Smoke/AppDelegate.swift');
+  const iosDirectory = `ios/${iosProjectName}`;
+  const appDelegatePath = assertFile(`${iosDirectory}/AppDelegate.swift`);
   const appDelegate = fs.readFileSync(appDelegatePath, 'utf8');
   assertContains(appDelegate, 'import UserNotifications', 'AppDelegate.swift');
   assertContains(appDelegate, 'JPUSHService.setup(withOption: launchOptions', 'AppDelegate.swift');
   assertContains(appDelegate, 'extension AppDelegate: JPUSHRegisterDelegate', 'AppDelegate.swift');
 
-  const infoPlist = read('ios/JPushExpo56Smoke/Info.plist');
+  const infoPlist = read(`${iosDirectory}/Info.plist`);
   assertContains(infoPlist, 'JPUSH_APPKEY', 'Info.plist');
   assertContains(infoPlist, 'JPUSH_CHANNEL', 'Info.plist');
   assertContains(infoPlist, 'developer-default', 'Info.plist');
 
-  const entitlements = read('ios/JPushExpo56Smoke/JPushExpo56Smoke.entitlements');
-  assertContains(entitlements, 'aps-environment', 'JPushExpo56Smoke.entitlements');
-  assertContains(entitlements, 'development', 'JPushExpo56Smoke.entitlements');
+  const entitlementsFile = `${iosProjectName}.entitlements`;
+  const entitlements = read(`${iosDirectory}/${entitlementsFile}`);
+  assertContains(entitlements, 'aps-environment', entitlementsFile);
+  assertContains(entitlements, 'development', entitlementsFile);
 
-  const bridgingHeader = read('ios/JPushExpo56Smoke/JPushExpo56Smoke-Bridging-Header.h');
+  const bridgingHeaderFile = `${iosProjectName}-Bridging-Header.h`;
+  const bridgingHeader = read(`${iosDirectory}/${bridgingHeaderFile}`);
   assertContains(bridgingHeader, '#import <JPUSHService.h>', 'Bridging Header');
   assertContains(bridgingHeader, '#import <RCTJPushModule.h>', 'Bridging Header');
 
-  console.log(`\nExpo 56 prebuild smoke passed in ${appRoot}`);
+  console.log(`\nExpo ${sdk} prebuild smoke passed in ${appRoot}`);
 } finally {
   if (tarballPath) {
     fs.rmSync(tarballPath, { force: true });

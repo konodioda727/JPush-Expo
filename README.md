@@ -11,7 +11,7 @@
     <a href="https://www.npmjs.com/package/mx-jpush-expo"><img alt="npm version" src="https://img.shields.io/npm/v/mx-jpush-expo?logo=npm&label=npm"></a>
     <a href="https://github.com/konodioda727/JPush-Expo/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/konodioda727/JPush-Expo/ci.yml?branch=main&logo=githubactions&label=CI"></a>
     <a href="https://github.com/konodioda727/JPush-Expo/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/konodioda727/JPush-Expo"></a>
-    <img alt="Expo SDK 55 / 56" src="https://img.shields.io/badge/Expo%20SDK-55%20%2F%2056-000020?logo=expo">
+    <img alt="Expo SDK 55 / 56 / 57" src="https://img.shields.io/badge/Expo%20SDK-55%20%2F%2056%20%2F%2057-000020?logo=expo">
     <a href="https://nodejs.org/"><img alt="Node.js >=20.19.4" src="https://img.shields.io/badge/Node.js-%3E%3D20.19.4-339933?logo=nodedotjs&logoColor=white"></a>
   </p>
 
@@ -65,12 +65,14 @@
 
 | 项目 | 版本 |
 | --- | --- |
-| Expo SDK | `55 / 56` |
-| 仓库开发基线 | `Expo SDK 56` |
-| React Native | `0.83.6（SDK 55）/ 0.85.2（SDK 56）` |
+| Expo SDK | `55 / 56 / 57` |
+| 仓库开发基线 | `Expo SDK 57.0.15` |
+| React Native | `0.83.6（SDK 55）/ 0.85.2（SDK 56）/ 0.86.2（SDK 57）` |
 | Node.js | `>= 20.19.4` |
 | `jpush-react-native` | `3.1.9` |
 | `jcore-react-native` | `2.3.0` |
+
+`package.json` 保留 Node.js `>= 20.19.4`，以继续支持 SDK 55 / 56。Expo SDK 57 的开发与 prebuild 工具链要求 Node.js `>= 22.13.0`；仓库的 SDK 56 / 57 smoke 均使用 Node.js `24.15.0`。
 
 ## 快速开始
 
@@ -364,6 +366,7 @@ npm run build
 pnpm test --runInBand
 pnpm run lint
 pnpm run test:prebuild:expo56
+pnpm run test:prebuild:expo57
 ```
 
 ### 测试覆盖重点
@@ -372,7 +375,9 @@ pnpm run test:prebuild:expo56
 - iOS `AppDelegate.swift` 注入与幂等
 - Android `Manifest`、Gradle、Settings 和 `gradle.properties` 原生输出
 - fixture-based 回归测试，确保 `compileModsAsync` 输出稳定
-- Expo 56 真实 `prebuild --clean --no-install` smoke，验证发布包入口和 iOS / Android 生成结果
+- Expo 56 / 57 真实 `prebuild --clean --no-install` smoke，验证发布包入口和 iOS / Android 生成结果；SDK 57 fixture 还会先通过 `expo-doctor`
+
+prebuild smoke 只证明配置插件能在对应 Expo 模板中生成预期原生配置，不代表已完成真机推送、原生 release build 或 JPush 服务端投递验证。
 
 更多开发细节见 [DEVELOPMENT.md](./DEVELOPMENT.md)。
 
@@ -417,9 +422,9 @@ mx-jpush-expo/
 
 完整更新历史请查看 [CHANGELOG.md](./CHANGELOG.md)。
 
-- 支持 Expo 56（React Native 0.85.2 / React 19.2），仓库开发基线升级到 Expo SDK 56，Node.js 要求提升到 `>= 20.19.4`
+- 支持 Expo 57（React Native 0.86.2 / React 19.2.3），仓库开发基线升级到 Expo SDK 57.0.15，同时保留 SDK 55 / 56 的 peer compatibility
 - `channel` 和 `packageName` 支持默认推断，基础接入只需要显式提供 `appKey`
-- 新增 Expo 56 真实 prebuild smoke，可验证发布包入口和 iOS / Android 生成结果
+- Expo 56 / 57 真实 prebuild smoke 可验证发布包入口和 iOS / Android 生成结果，SDK 57 fixture 同时运行 `expo-doctor`
 - iOS `AppDelegate.swift` 注入兼容 Swift 访问级别导入（SDK 56 默认 `internal import Expo`）
 - iOS prebuild 现在会按 `apsForProduction` 写入 `.entitlements` 的 `aps-environment`，解决推送通知无法收到的问题，同时保留宿主已有的其他 entitlement 键
 - iOS `UIBackgroundModes` 改为合并写入，不再覆盖宿主已有后台模式
