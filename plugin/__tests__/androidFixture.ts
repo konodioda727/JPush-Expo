@@ -42,11 +42,25 @@ export function getFixturePath(projectRoot: string, segments: string[]): string 
   return path.join(projectRoot, ...segments);
 }
 
+const JPUSH_DEPENDENCY_STUBS = ['jpush-react-native', 'jcore-react-native'];
+
 export function createProjectRoot(): string {
   const projectRoot = fs.mkdtempSync(
     path.join(os.tmpdir(), 'mx-jpush-android-')
   );
   fs.cpSync(FIXTURE_ROOT, projectRoot, { recursive: true });
+  // settings.gradle 的模块路径按 Node 解析规则自 projectRoot 逐级向上查找,
+  // fixture 需要模拟已安装的 jpush 依赖(.gitignore 忽略 node_modules,
+  // 因此在运行时创建 stub 而不是提交进仓库)
+  for (const packageName of JPUSH_DEPENDENCY_STUBS) {
+    fs.mkdirSync(path.join(projectRoot, 'node_modules', packageName, 'android'), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(projectRoot, 'node_modules', packageName, 'android', 'build.gradle'),
+      `// stub for ${packageName} path resolution\n`
+    );
+  }
   tempProjectRoots.push(projectRoot);
   return projectRoot;
 }

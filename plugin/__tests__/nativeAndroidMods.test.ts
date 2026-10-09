@@ -45,6 +45,13 @@ describe('native Android config mods', () => {
 
     expect(settingsGradle).toContain("include ':jpush-react-native'");
     expect(settingsGradle).toContain("include ':jcore-react-native'");
+    // 依赖 stub 位于 fixture 项目自身 node_modules 下,projectDir 应解析为经典相对路径
+    expect(settingsGradle).toContain(
+      "project(':jpush-react-native').projectDir = new File(rootProject.projectDir, '../node_modules/jpush-react-native/android')"
+    );
+    expect(settingsGradle).toContain(
+      "project(':jcore-react-native').projectDir = new File(rootProject.projectDir, '../node_modules/jcore-react-native/android')"
+    );
 
     // 检查是否添加了正确的依赖
     expect(appBuildGradle).toContain("implementation project(':jpush-react-native')");
